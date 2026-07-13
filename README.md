@@ -1,42 +1,29 @@
-
-
-
-
 # TripSync
 
 **Collaborative trip planning for groups — itinerary, expenses, files, and real-time sync in one place.**
 
-[Node.js](https://nodejs.org)
-[Express](https://expressjs.com)
-[MongoDB](https://mongodb.com)
-[React](https://react.dev)
-[Socket.io](https://socket.io)
-[TailwindCSS](https://tailwindcss.com)
-[License](LICENSE)
+A full-stack personal project built to explore real-time collaboration, JWT auth with token rotation, RBAC, and modern React patterns end-to-end — from schema design to deployment.
 
-[Features](#-features) · [Tech Stack](#-tech-stack) · [Architecture](#-architecture) · [Getting Started](#-getting-started) · [API](#-api-highlights) · [Roadmap](#-roadmap)
+🔗 **Live demo:** [tripsync.piyushdev.online](https://tripsync.piyushdev.online/)
 
+[Node.js](https://nodejs.org) · [Express](https://expressjs.com) · [MongoDB](https://mongodb.com) · [React](https://react.dev) · [Socket.io](https://socket.io) · [TailwindCSS](https://tailwindcss.com) · [License](LICENSE)
 
+[Live Demo](https://tripsync.piyushdev.online/) · [Features](#-features) · [Tech Stack](#-tech-stack) · [Architecture](#-architecture) · [Getting Started](#-getting-started) · [API](#-api-highlights) · [Roadmap](#-roadmap)
 
 ---
-
-
 
 ## 📖 Project Overview
 
 TripSync is a full-stack collaborative trip-planning platform where groups can plan travel together in real time. Instead of scattered group chats, email threads, and spreadsheets, TripSync gives every trip a shared workspace: a destination itinerary, a live expense ledger, file storage for tickets and bookings, and role-based member management — all updating instantly across every open browser tab via WebSockets.
 
-> Built as a portfolio project to demonstrate full-stack development with real-time features, JWT auth with token rotation, RBAC, file uploads, and modern React patterns.
+> This is a personal / portfolio project, built solo to demonstrate full-stack development skills: real-time features, JWT auth with token rotation, RBAC, file uploads, and modern React patterns. Try it live at [tripsync.piyushdev.online](https://tripsync.piyushdev.online/).
 
 ---
 
-
-
 ## ✨ Features
 
-
 | Category         | Features                                                                        |
-| ---------------- | ------------------------------------------------------------------------------- |
+| ----------------- | -------------------------------------------------------------------------------- |
 | **Trips**        | Create, edit, delete trips with title, description, date range, and cover image |
 | **Destinations** | Add places to visit with date, time (AM/PM), and estimated cost (₹)             |
 | **Members**      | Invite by email, assign Owner / Editor / Viewer roles, remove members           |
@@ -48,20 +35,14 @@ TripSync is a full-stack collaborative trip-planning platform where groups can p
 | **Theming**      | Light / Dark / System theme toggle persisted to localStorage                    |
 | **Docs**         | Integrated product documentation at `/docs`                                     |
 
-
 ---
-
-
 
 ## 🛠 Tech Stack
 
-
-
 ### Backend
 
-
 | Technology   | Version | Purpose                                        |
-| ------------ | ------- | ---------------------------------------------- |
+| ------------ | ------- | ----------------------------------------------- |
 | Node.js      | 22.x    | Runtime                                        |
 | Express      | 5.x     | HTTP framework (async error handling built-in) |
 | MongoDB      | 7.x     | Database                                       |
@@ -74,14 +55,10 @@ TripSync is a full-stack collaborative trip-planning platform where groups can p
 | Multer       | 2.x     | Multipart form / file upload middleware        |
 | Joi          | 18.x    | Request body validation via DTOs               |
 
-
-
-
 ### Frontend
 
-
 | Technology       | Version | Purpose                             |
-| ---------------- | ------- | ----------------------------------- |
+| ----------------- | ------- | ------------------------------------ |
 | React            | 19.x    | UI library                          |
 | Vite             | 8.x     | Build tool and dev server           |
 | TailwindCSS      | 4.x     | Utility-first styling               |
@@ -94,10 +71,15 @@ TripSync is a full-stack collaborative trip-planning platform where groups can p
 | date-fns         | 4.x     | Date formatting                     |
 | Sonner           | 2.x     | Toast notifications                 |
 
+### Deployment
+
+| Layer     | Platform                    |
+| --------- | ---------------------------- |
+| Frontend  | Vercel                       |
+| Backend   | Render                       |
+| Domain    | Custom domain via Hostinger DNS |
 
 ---
-
-
 
 ## 🏗 Architecture
 
@@ -124,8 +106,6 @@ TripSync is a full-stack collaborative trip-planning platform where groups can p
 └─────────────────────────────────────────────────────────┘
 ```
 
-
-
 ### Module pattern (Backend)
 
 Every feature follows the same four-layer structure:
@@ -140,8 +120,6 @@ src/modules/<feature>/
 ```
 
 ---
-
-
 
 ## 📁 Folder Structure
 
@@ -192,8 +170,6 @@ Trip Planner/
 
 ---
 
-
-
 ## 🗄 Database Design
 
 ```
@@ -225,9 +201,7 @@ Documents
 
 ---
 
-
-
-## ⚡ Real-time Collaboration ([Socket.IO](http://Socket.IO))
+## ⚡ Real-time Collaboration (Socket.IO)
 
 Every trip gets its own Socket.IO room: `trip_<tripId>`. Members join when they open a trip page and automatically rejoin after reconnections.
 
@@ -242,13 +216,10 @@ io.use(socketAuth)  ──► verifyAccessToken() ──► User.findById()
             Connection accepted
 ```
 
-
-
 ### Events
 
-
 | Event                 | Emitted after         | Received by              |
-| --------------------- | --------------------- | ------------------------ |
+| ---------------------- | ----------------------- | -------------------------- |
 | `expense:created`     | New expense saved     | All members in trip room |
 | `expense:updated`     | Expense updated       | All members in trip room |
 | `expense:deleted`     | Expense deleted       | All members in trip room |
@@ -260,9 +231,6 @@ io.use(socketAuth)  ──► verifyAccessToken() ──► User.findById()
 | `member:deleted`      | Member removed        | All members in trip room |
 | `document:uploaded`   | File uploaded         | All members in trip room |
 | `document:deleted`    | File deleted          | All members in trip room |
-
-
-
 
 ### Frontend handling
 
@@ -279,17 +247,14 @@ socket.on("expense:created", () =>
 
 ---
 
-
-
 ## 🔌 API Highlights
 
-Base URL: `http://localhost:4000/api/v1`
+Base URL (local): `http://localhost:4000/api/v1`
 
 ### Auth
 
-
 | Method | Endpoint                      | Auth   | Description                                       |
-| ------ | ----------------------------- | ------ | ------------------------------------------------- |
+| ------ | ------------------------------ | ------ | --------------------------------------------------- |
 | `POST` | `/auth/register`              | —      | Register new user                                 |
 | `POST` | `/auth/login`                 | —      | Login, returns access token + sets refresh cookie |
 | `POST` | `/auth/refresh-token`         | Cookie | Silently rotate tokens                            |
@@ -298,38 +263,27 @@ Base URL: `http://localhost:4000/api/v1`
 | `PUT`  | `/auth/reset-password/:token` | —      | Reset password with token                         |
 | `GET`  | `/auth/me`                    | Bearer | Get current user                                  |
 
-
-
-
 ### Trips
 
-
 | Method   | Endpoint               | Role          | Description                    |
-| -------- | ---------------------- | ------------- | ------------------------------ |
+| --------- | ------------------------ | --------------- | --------------------------------- |
 | `POST`   | `/trips/create-trip`   | Any           | Create a new trip              |
 | `GET`    | `/trips/getAllTrips`   | Any           | Get all trips for current user |
 | `PATCH`  | `/trips/:tripId`       | Owner, Editor | Update trip details            |
 | `DELETE` | `/trips/:tripId`       | Owner         | Delete trip                    |
 | `PATCH`  | `/trips/:tripId/cover` | Owner, Editor | Upload cover image             |
 
-
-
-
 ### Expenses
 
-
 | Method   | Endpoint                           | Role          | Description             |
-| -------- | ---------------------------------- | ------------- | ----------------------- |
+| --------- | ------------------------------------- | --------------- | -------------------------- |
 | `POST`   | `/trips/:tripId/expenses`          | All           | Add expense             |
 | `GET`    | `/trips/:tripId/expenses`          | All           | List expenses           |
 | `GET`    | `/trips/:tripId/expenses/balances` | All           | Get per-member balances |
 | `PATCH`  | `/trips/:tripId/expenses/:id`      | Owner, Editor | Update expense          |
 | `DELETE` | `/trips/:tripId/expenses/:id`      | Owner         | Delete expense          |
 
-
 > Members, Destinations, and Documents follow the same RESTful pattern under `/trips/:tripId/`.
-
-
 
 ### RBAC Middleware
 
@@ -342,38 +296,21 @@ requireRole("Owner") // throws 403 if role is insufficient
 
 ---
 
-
-
 ## 🚀 Getting Started
 
+### Try it live
 
+The easiest way to see TripSync in action is the hosted version: **[tripsync.piyushdev.online](https://tripsync.piyushdev.online/)**
 
-### Prerequisites
+### Run it locally
+
+**Prerequisites**
 
 - Node.js 18+
 - pnpm (`npm i -g pnpm`)
 - MongoDB Atlas account (or local MongoDB)
 - Cloudinary account (free tier)
 - Mailtrap account (free tier, for email testing)
-
-
-
-## 📸 Screenshots
-
->
-
-
-| Page             | Preview                        |
-| ---------------- | ------------------------------ |
-| Landing Page     | `screenshots/landing.png`      |
-| Dashboard        | `screenshots/dashboard.png`    |
-| Trip Details     | `screenshots/trip-details.png` |
-| Expense Balances | `screenshots/balances.png`     |
-| Docs Page        | `screenshots/docs.png`         |
-
-
----
-
 
 
 ## 🗺 Roadmap
@@ -391,15 +328,13 @@ requireRole("Owner") // throws 403 if role is insufficient
 
 ---
 
-
-
 ## 🧠 Challenges & Learnings
 
 **React StrictMode + Socket.IO**
 StrictMode double-invokes effects in development, creating two socket connections and causing the first one to be cleaned up before it connected — meaning `setSocket` was never called and the context stayed `null`. Fixed by wrapping `setSocket` in the socket's `connect` event with an `active` flag to guard against the StrictMode cleanup cycle.
 
 **Token refresh race condition**
-Multiple simultaneous API requests expiring at the same time all triggered refresh simultaneously, causing one to succeed and the rest to fail with "invalid token" (because the refresh token had already rotated). Fixed with a `isRefreshing` flag and a `failedQueue` in the Axios interceptor that queues all subsequent 401s and retries them with the new token once the refresh completes.
+Multiple simultaneous API requests expiring at the same time all triggered refresh simultaneously, causing one to succeed and the rest to fail with "invalid token" (because the refresh token had already rotated). Fixed with an `isRefreshing` flag and a `failedQueue` in the Axios interceptor that queues all subsequent 401s and retries them with the new token once the refresh completes.
 
 **Socket room auth after reconnect**
 When a socket disconnects and reconnects (new socket ID on server), it loses room membership. Without rejoining, events were silently dropped. Fixed by listening to the socket's `connect` event inside `useTripSocket` and re-emitting `join-trip` on every (re)connection.
@@ -409,49 +344,24 @@ Implemented a two-step middleware approach: `loadTripRole` first fetches the mem
 
 ---
 
-
-
-## 🤝 Contributing
-
-Contributions are welcome. Please open an issue to discuss a change before submitting a PR.
-
-```bash
-# Fork → clone → create a feature branch
-git checkout -b feat/your-feature
-
-# Make changes, then commit
-git commit -m "feat: add your feature"
-
-# Push and open a PR
-git push origin feat/your-feature
-```
-
-Please follow the existing code style: ES Modules, async/await, no default exports from service files.
-
----
-
-
-
 ## 📄 License
 
 This project is licensed under the [MIT License](LICENSE).
 
 ---
 
-
-
 ## 👤 Author
 
 **Piyush Kumar**
 
-[GitHub](https://github.com/Piyushkumar-20)
-[Email](mailto:piyush.dev200@gmail.com)
+Computer Science Engineering student, building full-stack projects to learn by shipping.
+
+- 🔗 Live project: [tripsync.piyushdev.online](https://tripsync.piyushdev.online/)
+- 💻 GitHub: [github.com/Piyushkumar-20](https://github.com/Piyushkumar-20)
+- ✉️ Email: [piyush.dev200@gmail.com](mailto:piyush.dev200@gmail.com)
 
 ---
 
-
-
-Built with ☕ and too many boarding passes.
+Built solo, with ☕ and too many boarding passes.
 
 ⭐ Star this repo if you found it useful!
-

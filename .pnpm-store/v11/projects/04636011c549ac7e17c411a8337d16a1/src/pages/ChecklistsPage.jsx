@@ -5,7 +5,6 @@ import {
   ArrowRight,
   Check,
   MoreHorizontal,
-  NotebookText,
   Plus,
   Trash2,
   User,
@@ -35,6 +34,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const MAX_ITEM_LENGTH = 50;
 
@@ -383,28 +383,6 @@ function ProgressCard({ view, completed, total }) {
   );
 }
 
-function NotesCard() {
-  return (
-    <Card className="shadow-lg shadow-foreground/5">
-      <CardHeader className="flex flex-row items-center gap-2">
-        <NotebookText className="size-4 text-muted-foreground" />
-        <CardTitle className="text-sm font-semibold">Notes</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm leading-6 text-muted-foreground">Add any personal notes for this trip.</p>
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-4 border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
-        >
-          <Plus className="size-3.5" />
-          Add Note
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
 function MembersCard({ members, currentUserId, isLoading, onViewAll }) {
   return (
     <Card className="shadow-lg shadow-foreground/5">
@@ -451,7 +429,7 @@ export default function ChecklistsPage() {
   const { tripId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [adding, setAdding] = useState(false);
 
   useTripSocket(tripId);
@@ -507,6 +485,10 @@ export default function ChecklistsPage() {
     updateItem.mutate({ itemId: item._id, data: { completed: !item.completed } });
   const handleDelete = (item) => deleteItem.mutate(item._id);
   const handleAdd = (text) => createItem.mutate(text);
+  const handleViewChange = (value) => {
+    setAdding(false);
+    setSearchParams(value === "shared" ? { type: "shared" } : {});
+  };
 
   if (tripsLoading && !trip) {
     return (
@@ -544,15 +526,18 @@ export default function ChecklistsPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Tabs value={activeView} onValueChange={handleViewChange}>
+                <TabsList>
+                  <TabsTrigger value="personal">Personal</TabsTrigger>
+                  <TabsTrigger value="shared">Shared</TabsTrigger>
+                </TabsList>
+              </Tabs>
               <Button
                 className="border border-primary/20 shadow-sm shadow-primary/15"
                 onClick={() => setAdding(true)}
               >
                 <Plus className="size-4" />
                 {view.action}
-              </Button>
-              <Button variant="outline" size="icon" aria-label="Checklist options">
-                <MoreHorizontal className="size-4" />
               </Button>
             </div>
           </div>
@@ -573,9 +558,7 @@ export default function ChecklistsPage() {
 
         <aside className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
           <ProgressCard view={view} completed={completed} total={total} />
-          {activeView === "personal" ? (
-            <NotesCard />
-          ) : (
+          {activeView === "shared" && (
             <MembersCard
               members={memberList}
               currentUserId={currentUserId}

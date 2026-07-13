@@ -248,6 +248,12 @@ export default function TripDetailsPage() {
           </TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
+          <TabsTrigger
+            value="checklists"
+            onClick={() => navigate(`/trips/${tripId}/checklists`)}
+          >
+            Checklist
+          </TabsTrigger>
         </TabsList>
 
         {/* ── Members ── */}

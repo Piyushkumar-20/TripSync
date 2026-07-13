@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -8,9 +7,6 @@ import {
   PlaneTakeoff,
   LogOut,
   ChevronUp,
-  ChevronRight,
-  ListChecks,
-  User,
 } from "lucide-react";
 import {
   Sidebar,
@@ -24,14 +20,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,11 +43,6 @@ const topNavItems = [
   { title: "Members", url: "/members", icon: Users },
 ];
 
-const checklistSubItems = [
-  { key: "personal", title: "Personal", icon: User },
-  { key: "shared", title: "Shared", icon: Users },
-];
-
 function NavItem({ item }) {
   const { pathname } = useLocation();
   const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
@@ -68,58 +55,6 @@ function NavItem({ item }) {
           <span>{item.title}</span>
         </NavLink>
       </SidebarMenuButton>
-    </SidebarMenuItem>
-  );
-}
-
-// Checklists are trip-scoped, but the sidebar is global. We follow the trip in
-// the current route and remember the most recent one so the entry stays usable
-// from anywhere in the app.
-function ChecklistsNav() {
-  const { pathname, search } = useLocation();
-  const routeTripId = pathname.match(/^\/trips\/([^/]+)/)?.[1];
-
-  // Remember the trip we're browsing so the checklist links stay usable from
-  // anywhere in the app (the sidebar is global, checklists are trip-scoped).
-  useEffect(() => {
-    if (routeTripId) localStorage.setItem("activeTripId", routeTripId);
-  }, [routeTripId]);
-
-  const tripId = routeTripId ?? localStorage.getItem("activeTripId");
-  const base = tripId ? `/trips/${tripId}/checklists` : "/trips";
-  const onChecklists = /^\/trips\/[^/]+\/checklists/.test(pathname);
-  const activeType = new URLSearchParams(search).get("type") === "shared" ? "shared" : "personal";
-
-  const [open, setOpen] = useState(onChecklists);
-
-  return (
-    <SidebarMenuItem>
-      <SidebarMenuButton
-        isActive={onChecklists}
-        tooltip="Checklists"
-        className="cursor-pointer"
-        onClick={() => setOpen((value) => !value)}
-      >
-        <ListChecks />
-        <span>Checklists</span>
-        <ChevronRight
-          className={cn("ml-auto transition-transform duration-200", open && "rotate-90")}
-        />
-      </SidebarMenuButton>
-      {open && (
-        <SidebarMenuSub>
-          {checklistSubItems.map((item) => (
-            <SidebarMenuSubItem key={item.key}>
-              <SidebarMenuSubButton asChild isActive={onChecklists && activeType === item.key}>
-                <NavLink to={`${base}?type=${item.key}`}>
-                  <item.icon />
-                  <span>{item.title}</span>
-                </NavLink>
-              </SidebarMenuSubButton>
-            </SidebarMenuSubItem>
-          ))}
-        </SidebarMenuSub>
-      )}
     </SidebarMenuItem>
   );
 }
@@ -172,7 +107,6 @@ function AppSidebar() {
               {topNavItems.map((item) => (
                 <NavItem key={item.title} item={item} />
               ))}
-              <ChecklistsNav />
               <NavItem item={{ title: "Settings", url: "/settings", icon: Settings }} />
             </SidebarMenu>
           </SidebarGroupContent>

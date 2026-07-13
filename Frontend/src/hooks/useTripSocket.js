@@ -25,7 +25,8 @@ export const useTripSocket = (tripId) => {
     const invalidateActivities   = () => qc.invalidateQueries({ queryKey: ["activities", tripId] });
     const invalidateMembers      = () => qc.invalidateQueries({ queryKey: ["members", tripId] });
     const invalidateDocuments    = () => qc.invalidateQueries({ queryKey: ["documents", tripId] });
-    const invalidateChecklists   = () => qc.invalidateQueries({ queryKey: ["checklists", tripId] });
+    const invalidateSharedChecklist = () =>
+      qc.invalidateQueries({ queryKey: ["checklists", tripId, "Shared"] });
 
     socket.on("trip:updated",        invalidateTrip);
     socket.on("expense:created",     invalidateExpenses);
@@ -43,9 +44,9 @@ export const useTripSocket = (tripId) => {
     socket.on("member:deleted",      invalidateMembers);
     socket.on("document:uploaded",   invalidateDocuments);
     socket.on("document:deleted",    invalidateDocuments);
-    socket.on("checklist:itemCreated", invalidateChecklists);
-    socket.on("checklist:itemUpdated", invalidateChecklists);
-    socket.on("checklist:itemDeleted", invalidateChecklists);
+    socket.on("checklist:itemCreated", invalidateSharedChecklist);
+    socket.on("checklist:itemUpdated", invalidateSharedChecklist);
+    socket.on("checklist:itemDeleted", invalidateSharedChecklist);
 
     return () => {
       socket.off("connect",            rejoin);
@@ -65,9 +66,9 @@ export const useTripSocket = (tripId) => {
       socket.off("member:deleted",     invalidateMembers);
       socket.off("document:uploaded",  invalidateDocuments);
       socket.off("document:deleted",   invalidateDocuments);
-      socket.off("checklist:itemCreated", invalidateChecklists);
-      socket.off("checklist:itemUpdated", invalidateChecklists);
-      socket.off("checklist:itemDeleted", invalidateChecklists);
+      socket.off("checklist:itemCreated", invalidateSharedChecklist);
+      socket.off("checklist:itemUpdated", invalidateSharedChecklist);
+      socket.off("checklist:itemDeleted", invalidateSharedChecklist);
     };
   }, [socket, tripId, qc]);
 };

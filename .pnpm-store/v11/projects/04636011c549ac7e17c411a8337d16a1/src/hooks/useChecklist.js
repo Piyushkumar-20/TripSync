@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { checklistService } from "@/services/checklistService";
 
-// Query key shape: ["checklists", tripId, type]. The trip socket invalidates the
-// ["checklists", tripId] prefix, which matches every type for the trip.
+// Query key shape: ["checklists", tripId, type]. Shared checklist socket events
+// invalidate only the ["checklists", tripId, "Shared"] query.
 const checklistKey = (tripId, type) => ["checklists", tripId, type];
 
 export const useChecklist = (tripId, type) =>
