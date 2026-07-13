@@ -25,6 +25,7 @@ export const useTripSocket = (tripId) => {
     const invalidateActivities   = () => qc.invalidateQueries({ queryKey: ["activities", tripId] });
     const invalidateMembers      = () => qc.invalidateQueries({ queryKey: ["members", tripId] });
     const invalidateDocuments    = () => qc.invalidateQueries({ queryKey: ["documents", tripId] });
+    const invalidateComments     = () => qc.invalidateQueries({ queryKey: ["comments", tripId] });
     const invalidateSharedChecklist = () =>
       qc.invalidateQueries({ queryKey: ["checklists", tripId, "Shared"] });
 
@@ -44,6 +45,9 @@ export const useTripSocket = (tripId) => {
     socket.on("member:deleted",      invalidateMembers);
     socket.on("document:uploaded",   invalidateDocuments);
     socket.on("document:deleted",    invalidateDocuments);
+    socket.on("comment:created",     invalidateComments);
+    socket.on("comment:updated",     invalidateComments);
+    socket.on("comment:deleted",     invalidateComments);
     socket.on("checklist:itemCreated", invalidateSharedChecklist);
     socket.on("checklist:itemUpdated", invalidateSharedChecklist);
     socket.on("checklist:itemDeleted", invalidateSharedChecklist);
@@ -66,6 +70,9 @@ export const useTripSocket = (tripId) => {
       socket.off("member:deleted",     invalidateMembers);
       socket.off("document:uploaded",  invalidateDocuments);
       socket.off("document:deleted",   invalidateDocuments);
+      socket.off("comment:created",    invalidateComments);
+      socket.off("comment:updated",    invalidateComments);
+      socket.off("comment:deleted",    invalidateComments);
       socket.off("checklist:itemCreated", invalidateSharedChecklist);
       socket.off("checklist:itemUpdated", invalidateSharedChecklist);
       socket.off("checklist:itemDeleted", invalidateSharedChecklist);

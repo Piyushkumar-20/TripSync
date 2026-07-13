@@ -1,11 +1,19 @@
 import * as commentService from "./comments.service.js";
 import ApiResponse from "../../common/utils/api-response.js";
-import { io } from "../../app.js"
 
 const createComment = async (req, res) => {
   const comment = await commentService.createComment({
     ...req.body,
     activityId: req.params.activityId,
+    currentUserId: req.user.id,
+  });
+  ApiResponse.created(res, "Comment Added", comment);
+};
+
+const createTripComment = async (req, res) => {
+  const comment = await commentService.createTripComment({
+    ...req.body,
+    tripId: req.params.tripId,
     currentUserId: req.user.id,
   });
   ApiResponse.created(res, "Comment Added", comment);
@@ -21,9 +29,16 @@ const updateComment = async (req, res) => {
 
 const getAllComment = async (req, res) => {
   const comment = await commentService.getAllComment({
-    commentId: req.params.commentId,
+    activityId: req.params.activityId,
   });
   ApiResponse.ok(res, "Comments!", comment);
+};
+
+const getTripComments = async (req, res) => {
+  const comments = await commentService.getTripComments({
+    tripId: req.params.tripId,
+  });
+  ApiResponse.ok(res, "Comments!", comments);
 };
 
 const deleteComment = async (req, res) => {
@@ -31,10 +46,14 @@ const deleteComment = async (req, res) => {
     tripId: req.params.tripId,
     commentId: req.params.commentId,
   });
-  io.to(`trip_${req.params.tripId}`).emit("comment:deleted", {
-    commentId: req.params.commentId,
-  });
   ApiResponse.noContent(res, "Comment Removed Successfully!");
 };
 
-export { createComment, updateComment, getAllComment, deleteComment };
+export {
+  createComment,
+  createTripComment,
+  updateComment,
+  getAllComment,
+  getTripComments,
+  deleteComment,
+};

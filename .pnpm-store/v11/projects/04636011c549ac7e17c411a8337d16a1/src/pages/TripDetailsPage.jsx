@@ -249,6 +249,12 @@ export default function TripDetailsPage() {
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
           <TabsTrigger
+            value="comments"
+            onClick={() => navigate(`/trips/${tripId}/comments`)}
+          >
+            Comments
+          </TabsTrigger>
+          <TabsTrigger
             value="checklists"
             onClick={() => navigate(`/trips/${tripId}/checklists`)}
           >

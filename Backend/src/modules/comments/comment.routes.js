@@ -12,6 +12,23 @@ import UpdateCommentDto from "./dto/update.dto.js";
 const router = Router();
 
 router.post(
+  "/:tripId/comments",
+  authenticate,
+  loadTripRole,
+  requireRole("Owner", "Editor", "Viewer"),
+  validate(CreateCommentDto),
+  controller.createTripComment,
+);
+
+router.get(
+  "/:tripId/comments",
+  authenticate,
+  loadTripRole,
+  requireRole("Owner", "Editor", "Viewer"),
+  controller.getTripComments,
+);
+
+router.post(
   "/:tripId/activities/:activityId/comments",
   authenticate,
   loadTripRole,
@@ -40,6 +57,8 @@ router.patch(
 router.delete(
   "/:tripId/comments/:commentId",
   authenticate,
+  loadTripRole,
+  requireRole("Owner", "Editor", "Viewer"),
   controller.deleteComment,
 );
 

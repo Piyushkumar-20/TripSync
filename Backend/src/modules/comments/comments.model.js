@@ -2,10 +2,15 @@ import mongoose from "mongoose";
 
 const commentSchema = new mongoose.Schema(
   {
+    tripId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Trip",
+      required: true,
+    },
+
     activityId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Activity",
-      required: true,
     },
 
     userId: {
