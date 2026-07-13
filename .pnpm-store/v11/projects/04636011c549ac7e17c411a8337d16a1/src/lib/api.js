@@ -1,4 +1,6 @@
 import axios from "axios";
+import { toast } from "sonner";
+import { ERROR_MESSAGES } from "@/lib/errors";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 const REFRESH_TOKEN_URL = "/auth/refresh-token";
@@ -64,6 +66,7 @@ api.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         localStorage.removeItem("accessToken");
+        toast.error(ERROR_MESSAGES.sessionExpired);
         window.location.href = "/login";
         return Promise.reject(refreshError);
       } finally {

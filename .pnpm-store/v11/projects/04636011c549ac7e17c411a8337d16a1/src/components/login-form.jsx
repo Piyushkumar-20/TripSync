@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { initializeGoogle, promptGoogleSignIn } from "@/lib/google";
+import { getAuthErrorMessage } from "@/lib/errors";
 
 
 export function LoginForm({ className, ...props }) {
@@ -42,10 +43,7 @@ export function LoginForm({ className, ...props }) {
       await login({ email: form.email, password: form.password });
       navigate("/dashboard");
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Login failed. Please check your credentials.",
-      );
+      setError(getAuthErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -66,11 +64,7 @@ export function LoginForm({ className, ...props }) {
           await googleLogin({ idToken: response.credential });
           navigate("/dashboard");
         } catch (err) {
-          setError(
-            err.response?.data?.message ||
-              err.message ||
-              "Google login failed. Please try again.",
-          );
+          setError(getAuthErrorMessage(err, "Google login failed. Please try again."));
         } finally {
           setLoading(false);
         }
@@ -78,7 +72,7 @@ export function LoginForm({ className, ...props }) {
 
       await promptGoogleSignIn();
     } catch (err) {
-      setError(err.message || "Google login failed. Please try again.");
+      setError(getAuthErrorMessage(err, "Google login failed. Please try again."));
       setLoading(false);
     }
   };

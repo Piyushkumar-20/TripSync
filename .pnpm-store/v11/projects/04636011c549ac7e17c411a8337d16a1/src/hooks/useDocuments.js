@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { getUserErrorMessage } from "@/lib/errors";
 import { documentService } from "@/services/documentService";
 
 export const useDocuments = (tripId) =>
@@ -21,7 +22,7 @@ export const useUploadDocument = (tripId) => {
       toast.success("Document uploaded");
     },
     onError: (err) =>
-      toast.error(err?.response?.data?.message || "Upload failed"),
+      toast.error(getUserErrorMessage(err, "Upload failed.")),
   });
 };
 
@@ -34,6 +35,6 @@ export const useDeleteDocument = (tripId) => {
       toast.success("Document deleted");
     },
     onError: (err) =>
-      toast.error(err?.response?.data?.message || "Failed to delete document"),
+      toast.error(getUserErrorMessage(err, "Failed to delete document.")),
   });
 };

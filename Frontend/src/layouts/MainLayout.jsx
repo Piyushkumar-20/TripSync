@@ -32,7 +32,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/context/AuthContext";
 import ThemeToggle from "@/components/shared/ThemeToggle";
@@ -167,7 +166,6 @@ export default function MainLayout() {
             <Outlet />
           </div>
         </SidebarInset>
-        <Toaster richColors position="top-right" />
       </SidebarProvider>
     </TooltipProvider>
   );

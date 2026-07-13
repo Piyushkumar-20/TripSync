@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { getUserErrorMessage } from "@/lib/errors";
 import { checklistService } from "@/services/checklistService";
 
 // Query key shape: ["checklists", tripId, type]. Shared checklist socket events
@@ -25,7 +26,7 @@ export const useCreateChecklistItem = (tripId, type, onSuccess) => {
       onSuccess?.();
     },
     onError: (err) =>
-      toast.error(err?.response?.data?.message || "Failed to add item"),
+      toast.error(getUserErrorMessage(err, "Failed to add item.")),
   });
 };
 
@@ -45,7 +46,7 @@ export const useUpdateChecklistItem = (tripId, type) => {
     },
     onError: (err, _vars, ctx) => {
       if (ctx?.previous) qc.setQueryData(key, ctx.previous);
-      toast.error(err?.response?.data?.message || "Failed to update item");
+      toast.error(getUserErrorMessage(err, "Failed to update item."));
     },
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
@@ -65,7 +66,7 @@ export const useDeleteChecklistItem = (tripId, type) => {
     onSuccess: () => toast.success("Item deleted"),
     onError: (err, _vars, ctx) => {
       if (ctx?.previous) qc.setQueryData(key, ctx.previous);
-      toast.error(err?.response?.data?.message || "Failed to delete item");
+      toast.error(getUserErrorMessage(err, "Failed to delete item."));
     },
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });

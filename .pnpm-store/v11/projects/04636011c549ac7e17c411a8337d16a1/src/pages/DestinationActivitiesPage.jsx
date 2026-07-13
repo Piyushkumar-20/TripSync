@@ -55,6 +55,7 @@ import { useMembers } from "@/hooks/useMembers";
 import { useTrips } from "@/hooks/useTrips";
 import { useTripSocket } from "@/hooks/useTripSocket";
 import { can } from "@/lib/rbac";
+import { getLoadErrorMessage, logError } from "@/lib/errors";
 import ActivityFormDialog from "@/components/activities/ActivityFormDialog";
 import DeleteActivityDialog from "@/components/activities/DeleteActivityDialog";
 import EmptyState from "@/components/shared/EmptyState";
@@ -77,9 +78,6 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const EXPECTED_ERROR_STATUSES = new Set([400, 401, 403, 404, 409, 422]);
-const RAW_ERROR_PATTERN = /(TypeError|ReferenceError|SyntaxError|RangeError|Mongo|CastError|ValidationError|at\s+\w+)/i;
-
 function formatDate(date) {
   if (!date) return "No date";
   const parsed = new Date(date);
@@ -90,18 +88,6 @@ function getDateKey(date) {
   if (!date) return "unknown";
   const parsed = new Date(date);
   return isValid(parsed) ? format(parsed, "yyyy-MM-dd") : "unknown";
-}
-
-function getReadableError(err) {
-  const status = err?.response?.status;
-  const message = err?.response?.data?.message;
-  return EXPECTED_ERROR_STATUSES.has(status) && message && !RAW_ERROR_PATTERN.test(message)
-    ? message
-    : "Something went wrong. Please try again.";
-}
-
-function isExpectedError(err) {
-  return EXPECTED_ERROR_STATUSES.has(err?.response?.status);
 }
 
 function groupActivitiesByDate(activities = []) {
@@ -388,11 +374,8 @@ export default function DestinationActivitiesPage() {
   useEffect(() => {
     if (!isError) return;
 
-    if (!EXPECTED_ERROR_STATUSES.has(error?.response?.status)) {
-      console.error("Unable to load activities", error);
-    }
-
-    toast.error(getReadableError(error));
+    logError(error, "activities-load");
+    toast.error(getLoadErrorMessage(error));
   }, [isError, error]);
 
   const closeForm = () => {
@@ -427,9 +410,7 @@ export default function DestinationActivitiesPage() {
     reorderActivities.mutate(payload, {
       onError: (err) => {
         qc.setQueryData(queryKey, previousActivities);
-        if (!isExpectedError(err)) {
-          console.error("Unable to reorder activities", err);
-        }
+        logError(err, "activities-reorder");
         toast.error("Unable to reorder activities. Please try again.");
       },
     });
@@ -503,7 +484,7 @@ export default function DestinationActivitiesPage() {
             <EmptyState
               icon={ListChecks}
               title="Unable to load activities"
-              description={getReadableError(error)}
+              description={getLoadErrorMessage(error)}
             />
           </CardContent>
         </Card>

@@ -18,6 +18,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { getAuthErrorMessage } from "@/lib/errors"
 
 export function SignupForm({ className, ...props }) {
   const { register } = useAuth()
@@ -43,7 +44,7 @@ export function SignupForm({ className, ...props }) {
       setSuccess("Account created. You can now sign in.")
       setTimeout(() => navigate("/login"), 2000)
     } catch (err) {
-      setError(err.response?.data?.message || "Registration failed. Please try again.")
+      setError(getAuthErrorMessage(err, "Registration failed. Please try again."))
     } finally {
       setLoading(false)
     }

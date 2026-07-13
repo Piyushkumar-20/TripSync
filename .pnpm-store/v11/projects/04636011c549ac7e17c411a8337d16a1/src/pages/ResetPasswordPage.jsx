@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import api from "@/lib/api";
+import { getAuthErrorMessage } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,7 +31,7 @@ export default function ResetPasswordPage() {
       setStatus("success");
     } catch (err) {
       setStatus("error");
-      setMessage(err.response?.data?.message || "Link may have expired. Please request a new one.");
+      setMessage(getAuthErrorMessage(err, "Link may have expired. Please request a new one."));
     }
   };
 

@@ -1,4 +1,6 @@
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { getUserErrorMessage } from "@/lib/errors";
 import { LogOut, User, Palette, Info } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import PageHeader from "@/components/shared/PageHeader";

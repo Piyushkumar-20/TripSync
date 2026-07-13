@@ -1,16 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { getUserErrorMessage } from "@/lib/errors";
 import { commentService } from "@/services/commentService";
 
 export const tripCommentsKey = (tripId) => ["comments", tripId];
-
-function getCommentErrorMessage(err) {
-  if (!err?.response) {
-    return "Unable to reach the server. Please make sure the backend is running.";
-  }
-
-  return err.response.data?.message || `Failed to add comment (${err.response.status})`;
-}
 
 export const useTripComments = (tripId) =>
   useQuery({
@@ -30,6 +23,7 @@ export const useCreateTripComment = (tripId) => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: tripCommentsKey(tripId) });
     },
-    onError: (err) => toast.error(getCommentErrorMessage(err)),
+    onError: (err) =>
+      toast.error(getUserErrorMessage(err, "Failed to add comment.")),
   });
 };

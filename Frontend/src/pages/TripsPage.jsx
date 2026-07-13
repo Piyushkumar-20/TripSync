@@ -9,6 +9,7 @@ import TripCard from "@/components/trips/TripCard";
 import TripFormDialog from "@/components/trips/TripFormDialog";
 import DeleteTripDialog from "@/components/trips/DeleteTripDialog";
 import EmptyState from "@/components/shared/EmptyState";
+import QueryErrorState from "@/components/shared/QueryErrorState";
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +41,7 @@ function TripCardWithMembers({ trip, onEdit, onDelete }) {
 }
 
 export default function TripsPage() {
-  const { data: allTrips, isLoading } = useTrips();
+  const { data: allTrips, isLoading, isError, error } = useTrips();
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [editTrip, setEditTrip] = useState(null);
@@ -82,6 +83,8 @@ export default function TripsPage() {
             <Skeleton key={i} className="h-60 w-full rounded-2xl" />
           ))}
         </div>
+      ) : isError ? (
+        <QueryErrorState error={error} title="Unable to load trips" queryKey={["trips"]} />
       ) : trips.length === 0 ? (
         <EmptyState
           icon={Map}

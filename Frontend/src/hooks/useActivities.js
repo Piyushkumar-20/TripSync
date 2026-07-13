@@ -2,27 +2,8 @@ import { useEffect } from "react";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useSocket } from "@/context/SocketContext";
+import { getUserErrorMessage } from "@/lib/errors";
 import { activityService } from "@/services/activityService";
-
-const GENERIC_ERROR_MESSAGE = "Something went wrong. Please try again.";
-const EXPECTED_ERROR_STATUSES = new Set([400, 401, 403, 404, 409, 422]);
-const RAW_ERROR_PATTERN = /(TypeError|ReferenceError|SyntaxError|RangeError|Mongo|CastError|ValidationError|at\s+\w+)/i;
-
-function getActivityErrorMessage(err) {
-  const status = err?.response?.status;
-  const message = err?.response?.data?.message;
-
-  if (
-    EXPECTED_ERROR_STATUSES.has(status) &&
-    message &&
-    !RAW_ERROR_PATTERN.test(message)
-  ) {
-    return message;
-  }
-
-  console.error("Activity request failed", err);
-  return GENERIC_ERROR_MESSAGE;
-}
 
 export const activityQueryKey = (tripId, destinationId) => [
   "activities",
@@ -68,7 +49,8 @@ export const useCreateActivity = (tripId, destinationId, onSuccess) => {
       toast.success("Activity added successfully");
       onSuccess?.();
     },
-    onError: (err) => toast.error(getActivityErrorMessage(err)),
+    onError: (err) =>
+      toast.error(getUserErrorMessage(err, "Failed to add activity.")),
   });
 };
 
@@ -83,7 +65,8 @@ export const useUpdateActivity = (tripId, destinationId, onSuccess) => {
       toast.success("Activity updated successfully");
       onSuccess?.();
     },
-    onError: (err) => toast.error(getActivityErrorMessage(err)),
+    onError: (err) =>
+      toast.error(getUserErrorMessage(err, "Failed to update activity.")),
   });
 };
 
@@ -101,7 +84,8 @@ export const useDeleteActivity = (tripId, destinationId, onSuccess) => {
       toast.success("Activity deleted successfully");
       onSuccess?.();
     },
-    onError: (err) => toast.error(getActivityErrorMessage(err)),
+    onError: (err) =>
+      toast.error(getUserErrorMessage(err, "Failed to delete activity.")),
   });
 };
 

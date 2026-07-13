@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { getUserErrorMessage } from "@/lib/errors";
 import { expenseService } from "@/services/expenseService";
 
 export const useExpenses = (tripId) =>
@@ -33,7 +34,7 @@ export const useCreateExpense = (tripId, onSuccess) => {
       onSuccess?.();
     },
     onError: (err) =>
-      toast.error(err?.response?.data?.message || "Failed to add expense"),
+      toast.error(getUserErrorMessage(err, "Failed to add expense.")),
   });
 };
 
@@ -47,6 +48,6 @@ export const useDeleteExpense = (tripId) => {
       toast.success("Expense deleted");
     },
     onError: (err) =>
-      toast.error(err?.response?.data?.message || "Failed to delete expense"),
+      toast.error(getUserErrorMessage(err, "Failed to delete expense.")),
   });
 };

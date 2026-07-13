@@ -10,6 +10,7 @@ import AddMemberDialog from "@/components/members/AddMemberDialog";
 import UpdateRoleDialog from "@/components/members/UpdateRoleDialog";
 import RemoveMemberDialog from "@/components/members/RemoveMemberDialog";
 import EmptyState from "@/components/shared/EmptyState";
+import QueryErrorState from "@/components/shared/QueryErrorState";
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +24,7 @@ import { UserPlus } from "lucide-react";
 
 function MembersContent({ tripId, canManageMembers }) {
   useTripSocket(tripId);
-  const { data: members, isLoading } = useMembers(tripId);
+  const { data: members, isLoading, isError, error } = useMembers(tripId);
   const [addOpen, setAddOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const [updateRoleOpen, setUpdateRoleOpen] = useState(false);
@@ -39,7 +40,13 @@ function MembersContent({ tripId, canManageMembers }) {
         )}
       </div>
 
-      {members?.length === 0 && !isLoading ? (
+      {isError ? (
+        <QueryErrorState
+          error={error}
+          title="Unable to load members"
+          queryKey={["members", tripId]}
+        />
+      ) : members?.length === 0 && !isLoading ? (
         <EmptyState
           icon={Users}
           title="No members yet"
@@ -91,7 +98,7 @@ function MembersContent({ tripId, canManageMembers }) {
 
 export default function MembersPage() {
   const { user } = useAuth();
-  const { data: allTrips, isLoading: tripsLoading } = useTrips();
+  const { data: allTrips, isLoading: tripsLoading, isError: tripsError, error: tripsLoadError } = useTrips();
   const [selectedTripId, setSelectedTripId] = useState("");
 
   // Show all trips the user has access to (backend already scopes this)
@@ -133,11 +140,15 @@ export default function MembersPage() {
       </div>
 
       {!selectedTripId ? (
+        tripsError ? (
+          <QueryErrorState error={tripsLoadError} title="Unable to load trips" queryKey={["trips"]} />
+        ) : (
         <EmptyState
           icon={Users}
           title="Select a trip"
           description="Choose a trip from the dropdown above to view and manage its members."
         />
+        )
       ) : (
         <MembersContent tripId={selectedTripId} canManageMembers={canManageMembers} />
       )}

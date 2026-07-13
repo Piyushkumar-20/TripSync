@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { getUserErrorMessage } from "@/lib/errors";
 import { destinationService } from "@/services/destinationService";
 
 export const useDestinations = (tripId) =>
@@ -22,7 +23,7 @@ export const useCreateDestination = (tripId, onSuccess) => {
       onSuccess?.();
     },
     onError: (err) =>
-      toast.error(err?.response?.data?.message || "Failed to add destination"),
+      toast.error(getUserErrorMessage(err, "Failed to add destination.")),
   });
 };
 
@@ -37,7 +38,7 @@ export const useUpdateDestination = (tripId, onSuccess) => {
       onSuccess?.();
     },
     onError: (err) =>
-      toast.error(err?.response?.data?.message || "Failed to update destination"),
+      toast.error(getUserErrorMessage(err, "Failed to update destination.")),
   });
 };
 
@@ -52,6 +53,6 @@ export const useDeleteDestination = (tripId, onSuccess) => {
       onSuccess?.();
     },
     onError: (err) =>
-      toast.error(err?.response?.data?.message || "Failed to remove destination"),
+      toast.error(getUserErrorMessage(err, "Failed to remove destination.")),
   });
 };

@@ -22,6 +22,7 @@ import {
   useUpdateChecklistItem,
 } from "@/hooks/useChecklist";
 import { cn } from "@/lib/utils";
+import QueryErrorState from "@/components/shared/QueryErrorState";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -265,6 +266,9 @@ function ChecklistTable({
   view,
   items,
   isLoading,
+  isError,
+  error,
+  queryKey,
   assigneeFor,
   adding,
   setAdding,
@@ -281,6 +285,14 @@ function ChecklistTable({
             {[1, 2, 3, 4, 5].map((i) => (
               <Skeleton key={i} className="h-11 w-full rounded-lg" />
             ))}
+          </div>
+        ) : isError ? (
+          <div className="px-6 py-10">
+            <QueryErrorState
+              error={error}
+              title="Unable to load checklist"
+              queryKey={queryKey}
+            />
           </div>
         ) : items.length === 0 ? (
           <p className="px-6 py-10 text-center text-sm text-muted-foreground">{view.emptyCopy}</p>
@@ -438,9 +450,9 @@ export default function ChecklistsPage() {
   const view = VIEWS[activeView];
   const Icon = view.icon;
 
-  const { data: trips, isLoading: tripsLoading } = useTrips();
+  const { data: trips, isLoading: tripsLoading, isError: tripsError, error: tripsLoadError } = useTrips();
   const { data: members, isLoading: membersLoading } = useMembers(tripId);
-  const { data: items, isLoading: itemsLoading } = useChecklist(tripId, view.type);
+  const { data: items, isLoading: itemsLoading, isError: itemsError, error: itemsLoadError } = useChecklist(tripId, view.type);
 
   const createItem = useCreateChecklistItem(tripId, view.type);
   const updateItem = useUpdateChecklistItem(tripId, view.type);
@@ -499,6 +511,12 @@ export default function ChecklistsPage() {
     );
   }
 
+  if (tripsError && !trip) {
+    return (
+      <QueryErrorState error={tripsLoadError} title="Unable to load trip" queryKey={["trips"]} />
+    );
+  }
+
   return (
     <div className="mx-auto max-w-7xl space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -546,6 +564,9 @@ export default function ChecklistsPage() {
             view={view}
             items={rows}
             isLoading={itemsLoading}
+            isError={itemsError}
+            error={itemsLoadError}
+            queryKey={["checklists", tripId, view.type]}
             assigneeFor={assigneeFor}
             adding={adding}
             setAdding={setAdding}

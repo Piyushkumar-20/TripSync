@@ -4,12 +4,13 @@ import { useTrips } from "@/hooks/useTrips";
 import WelcomeBanner from "@/components/dashboard/WelcomeBanner";
 import StatsCards from "@/components/dashboard/StatsCards";
 import RecentTrips from "@/components/dashboard/RecentTrips";
+import QueryErrorState from "@/components/shared/QueryErrorState";
 import QuickActions from "@/components/dashboard/QuickActions";
 import TripFormDialog from "@/components/trips/TripFormDialog";
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { data: allTrips, isLoading } = useTrips();
+  const { data: allTrips, isLoading, isError, error } = useTrips();
   const [createOpen, setCreateOpen] = useState(false);
 
   const trips = allTrips ?? [];
@@ -22,7 +23,11 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <RecentTrips trips={trips} loading={isLoading} />
+          {isError ? (
+            <QueryErrorState error={error} title="Unable to load trips" queryKey={["trips"]} />
+          ) : (
+            <RecentTrips trips={trips} loading={isLoading} />
+          )}
         </div>
         <div>
           <QuickActions onCreateTrip={() => setCreateOpen(true)} />

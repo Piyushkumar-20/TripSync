@@ -34,6 +34,7 @@ import AddExpenseDialog from "@/components/expenses/AddExpenseDialog";
 import ExpenseList from "@/components/expenses/ExpenseList";
 import DocumentList from "@/components/documents/DocumentList";
 import EmptyState from "@/components/shared/EmptyState";
+import QueryErrorState from "@/components/shared/QueryErrorState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,7 +75,7 @@ export default function TripDetailsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const { data: allTrips, isLoading: tripsLoading } = useTrips();
+  const { data: allTrips, isLoading: tripsLoading, isError: tripsError, error: tripsLoadError } = useTrips();
   const trip = allTrips?.find((t) => t._id === tripId) ?? state?.trip;
 
   const { data: members, isLoading: membersLoading } = useMembers(tripId);
@@ -121,6 +122,16 @@ export default function TripDetailsPage() {
         <Skeleton className="h-10 w-96" />
         <Skeleton className="h-64 w-full rounded-[24px]" />
       </div>
+    );
+  }
+
+  if (tripsError && !trip) {
+    return (
+      <QueryErrorState
+        error={tripsLoadError}
+        title="Unable to load trip"
+        queryKey={["trips"]}
+      />
     );
   }
 

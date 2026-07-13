@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { getUserErrorMessage } from "@/lib/errors";
 import { memberService } from "@/services/memberService";
 
 export const useMembers = (tripId) =>
@@ -22,7 +23,7 @@ export const useAddMember = (tripId, onSuccess) => {
       onSuccess?.();
     },
     onError: (err) =>
-      toast.error(err?.response?.data?.message || "Failed to add member"),
+      toast.error(getUserErrorMessage(err, "Failed to add member.")),
   });
 };
 
@@ -37,7 +38,7 @@ export const useUpdateMemberRole = (tripId, onSuccess) => {
       onSuccess?.();
     },
     onError: (err) =>
-      toast.error(err?.response?.data?.message || "Failed to update role"),
+      toast.error(getUserErrorMessage(err, "Failed to update role.")),
   });
 };
 
@@ -51,6 +52,6 @@ export const useRemoveMember = (tripId, onSuccess) => {
       onSuccess?.();
     },
     onError: (err) =>
-      toast.error(err?.response?.data?.message || "Failed to remove member"),
+      toast.error(getUserErrorMessage(err, "Failed to remove member.")),
   });
 };

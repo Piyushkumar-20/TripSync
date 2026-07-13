@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { MessageSquare, Send } from "lucide-react";
 import { useCreateTripComment, useTripComments } from "@/hooks/useComments";
 import EmptyState from "@/components/shared/EmptyState";
+import QueryErrorState from "@/components/shared/QueryErrorState";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,7 +73,7 @@ function CommentSkeletons() {
 
 export default function TripComments({ tripId }) {
   const [content, setContent] = useState("");
-  const { data: comments = [], isLoading } = useTripComments(tripId);
+  const { data: comments = [], isLoading, isError, error } = useTripComments(tripId);
   const createComment = useCreateTripComment(tripId);
 
   const value = content.trim();
@@ -101,6 +102,14 @@ export default function TripComments({ tripId }) {
         <div className="min-h-[320px]">
           {isLoading ? (
             <CommentSkeletons />
+          ) : isError ? (
+            <div className="flex min-h-[320px] items-center justify-center px-5 py-10">
+              <QueryErrorState
+                error={error}
+                title="Unable to load comments"
+                queryKey={["comments", tripId]}
+              />
+            </div>
           ) : comments.length === 0 ? (
             <div className="flex min-h-[320px] items-center justify-center px-5 py-10">
               <EmptyState

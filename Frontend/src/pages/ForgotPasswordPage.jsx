@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import api from "@/lib/api";
+import { getUserErrorMessage } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,7 +21,7 @@ export default function ForgotPasswordPage() {
       setStatus("sent");
     } catch (err) {
       setStatus("error");
-      setMessage(err.response?.data?.message || "Something went wrong. Please try again.");
+      setMessage(getUserErrorMessage(err));
     }
   };
 

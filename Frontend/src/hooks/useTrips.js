@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { getUserErrorMessage } from "@/lib/errors";
 import { tripService } from "@/services/tripService";
 
 export const useTrips = () =>
@@ -21,7 +22,7 @@ export const useCreateTrip = (onSuccess) => {
       onSuccess?.(data);
     },
     onError: (err) =>
-      toast.error(err?.response?.data?.message || "Failed to create trip"),
+      toast.error(getUserErrorMessage(err, "Failed to create trip.")),
   });
 };
 
@@ -35,7 +36,7 @@ export const useUpdateTrip = (onSuccess) => {
       onSuccess?.(data);
     },
     onError: (err) =>
-      toast.error(err?.response?.data?.message || "Failed to update trip"),
+      toast.error(getUserErrorMessage(err, "Failed to update trip.")),
   });
 };
 
@@ -49,6 +50,6 @@ export const useDeleteTrip = (onSuccess) => {
       onSuccess?.();
     },
     onError: (err) =>
-      toast.error(err?.response?.data?.message || "Failed to delete trip"),
+      toast.error(getUserErrorMessage(err, "Failed to delete trip.")),
   });
 };
