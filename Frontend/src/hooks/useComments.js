@@ -4,6 +4,14 @@ import { commentService } from "@/services/commentService";
 
 export const tripCommentsKey = (tripId) => ["comments", tripId];
 
+function getCommentErrorMessage(err) {
+  if (!err?.response) {
+    return "Unable to reach the server. Please make sure the backend is running.";
+  }
+
+  return err.response.data?.message || `Failed to add comment (${err.response.status})`;
+}
+
 export const useTripComments = (tripId) =>
   useQuery({
     queryKey: tripCommentsKey(tripId),
@@ -22,7 +30,6 @@ export const useCreateTripComment = (tripId) => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: tripCommentsKey(tripId) });
     },
-    onError: (err) =>
-      toast.error(err?.response?.data?.message || "Failed to add comment"),
+    onError: (err) => toast.error(getCommentErrorMessage(err)),
   });
 };
