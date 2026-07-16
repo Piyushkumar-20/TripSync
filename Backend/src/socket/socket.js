@@ -6,12 +6,6 @@ export const initSocket = () => {
   io.use(socketAuth);
 
   io.on("connection", (socket) => {
-    console.log(`Socket connected: ${socket.id}`);
-
     tripHandler(io, socket);
-
-    socket.on("disconnect", () => {
-      console.log(`Socket disconnected: ${socket.id}`);
-    });
   });
 };

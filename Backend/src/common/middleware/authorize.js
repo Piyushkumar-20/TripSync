@@ -25,8 +25,6 @@ export const loadTripRole = async (req, res, next) => {
 
   req.trip = trip;
   req.tripRole = member.role;
-  console.log("Trip Owner:", trip.owner.toString());
-  console.log("Current User:", req.user.id);
   next();
 };
 

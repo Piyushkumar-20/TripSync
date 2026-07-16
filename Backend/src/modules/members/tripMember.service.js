@@ -21,9 +21,7 @@ const addMember = async ({ tripId, email, role, currentUserId }) => {
   io.to(`trip_${tripId}`).emit("member:added", member);
 
   if (trip && inviter) {
-    sendMemberAddedEmail(user.email, user.fullName, trip.title, inviter.fullName).catch(
-      (err) => console.error("Failed to send member-added email:", err.message)
-    );
+    sendMemberAddedEmail(user.email, user.fullName, trip.title, inviter.fullName).catch(() => {});
   }
 
   return member;

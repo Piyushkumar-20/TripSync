@@ -9,12 +9,9 @@ const startServer = async () => {
 
   initSocket();
 
-  server.listen(PORT, () => {
-    console.log(`Server is running at http://localhost:${PORT} in ${process.env.NODE_ENV} mode`);
-  });
+  server.listen(PORT);
 };
 
-startServer().catch((err) => {
-  console.error("Failed to start server", err);
+startServer().catch(() => {
   process.exit(1);
 });
