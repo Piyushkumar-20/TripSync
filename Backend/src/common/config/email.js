@@ -26,8 +26,15 @@ const getSmtpConfigSummary = () => ({
   userConfigured: Boolean(process.env.SMTP_USER),
   passConfigured: Boolean(process.env.SMTP_PASS),
   fromEmail: process.env.SMTP_FROM_EMAIL,
-  clientUrl: process.env.CLIENT_URL,
+  clientUrl: getClientUrl(),
 });
+
+const getClientUrl = () => {
+  return (process.env.CLIENT_URL || "")
+    .split(",")
+    .map((url) => url.trim())
+    .filter(Boolean)[0];
+};
 
 // SMTP transporter — works with Mailtrap, Gmail, SendGrid, or any SMTP provider
 const transporter = nodemailer.createTransport({
@@ -72,7 +79,7 @@ const sendEmail = async (to, subject, html) => {
 };
 
 const sendResetPasswordEmail = async (email, token) => {
-  const url = `${process.env.CLIENT_URL}/reset-password/${token}`;
+  const url = `${getClientUrl()}/reset-password/${token}`;
   await sendEmail(
     email,
     "Reset your password",
@@ -81,7 +88,7 @@ const sendResetPasswordEmail = async (email, token) => {
 };
 
 const sendVerificationEmail = async (email, token) => {
-  const url = `${process.env.CLIENT_URL}/verify-email/${token}`;
+  const url = `${getClientUrl()}/verify-email/${token}`;
   await sendEmail(
     email,
     "Verify your email",
@@ -90,7 +97,7 @@ const sendVerificationEmail = async (email, token) => {
 };
 
 const sendMemberAddedEmail = async (toEmail, toName, tripTitle, inviterName) => {
-  const url = `${process.env.CLIENT_URL}/trips`;
+  const url = `${getClientUrl()}/trips`;
   await sendEmail(
     toEmail,
     `You have been added to "${tripTitle}" on TripSync`,
@@ -106,7 +113,7 @@ const sendMemberAddedEmail = async (toEmail, toName, tripTitle, inviterName) => 
 };
 
 const sendExpenseAddedEmail = async (toEmail, toName, tripTitle, expenseTitle, amount, paidBy) => {
-  const url = `${process.env.CLIENT_URL}/trips`;
+  const url = `${getClientUrl()}/trips`;
   await sendEmail(
     toEmail,
     `New expense added to "${tripTitle}"`,
