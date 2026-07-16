@@ -25,4 +25,4 @@ dist-ssr
 *.sw?
 .pnpm-store/
 pnpm-store/
-.agents/
+.agents
