@@ -19,6 +19,16 @@ const assertSmtpConfig = () => {
   }
 };
 
+const getSmtpConfigSummary = () => ({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT) || 587,
+  secure: Number(process.env.SMTP_PORT) === 465,
+  userConfigured: Boolean(process.env.SMTP_USER),
+  passConfigured: Boolean(process.env.SMTP_PASS),
+  fromEmail: process.env.SMTP_FROM_EMAIL,
+  clientUrl: process.env.CLIENT_URL,
+});
+
 // SMTP transporter — works with Mailtrap, Gmail, SendGrid, or any SMTP provider
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -37,12 +47,28 @@ const transporter = nodemailer.createTransport({
 const sendEmail = async (to, subject, html) => {
   assertSmtpConfig();
 
-  await transporter.sendMail({
-    from: `"${process.env.SMTP_FROM_NAME}" <${process.env.SMTP_FROM_EMAIL}>`,
-    to,
-    subject,
-    html,
-  });
+  try {
+    await transporter.sendMail({
+      from: `"${process.env.SMTP_FROM_NAME}" <${process.env.SMTP_FROM_EMAIL}>`,
+      to,
+      subject,
+      html,
+    });
+
+    console.log("Email sent successfully");
+  } catch (error) {
+    console.error("\n========== SMTP ERROR ==========");
+    console.error("Config:", getSmtpConfigSummary());
+    console.error("Message:", error.message);
+    console.error("Code:", error.code);
+    console.error("Response Code:", error.responseCode);
+    console.error("Response:", error.response);
+    console.error("Command:", error.command);
+    console.error("Full Error:", error);
+    console.error("================================\n");
+
+    throw error;
+  }
 };
 
 const sendResetPasswordEmail = async (email, token) => {
