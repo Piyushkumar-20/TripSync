@@ -1,5 +1,24 @@
 import nodemailer from "nodemailer";
 
+const requiredSmtpEnv = [
+  "SMTP_HOST",
+  "SMTP_PORT",
+  "SMTP_USER",
+  "SMTP_PASS",
+  "SMTP_FROM_NAME",
+  "SMTP_FROM_EMAIL",
+  "CLIENT_URL",
+];
+
+const assertSmtpConfig = () => {
+  const missing = requiredSmtpEnv.filter((key) => !process.env[key]);
+  if (missing.length > 0) {
+    const error = new Error(`Missing SMTP configuration: ${missing.join(", ")}`);
+    error.code = "SMTP_CONFIG_MISSING";
+    throw error;
+  }
+};
+
 // SMTP transporter — works with Mailtrap, Gmail, SendGrid, or any SMTP provider
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -16,6 +35,8 @@ const transporter = nodemailer.createTransport({
 });
 
 const sendEmail = async (to, subject, html) => {
+  assertSmtpConfig();
+
   await transporter.sendMail({
     from: `"${process.env.SMTP_FROM_NAME}" <${process.env.SMTP_FROM_EMAIL}>`,
     to,

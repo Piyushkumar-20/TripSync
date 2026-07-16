@@ -17,6 +17,10 @@ class ApiError extends Error {
     return new ApiError(409, message);
   }
 
+  static badGateway(message = "Bad Gateway") {
+    return new ApiError(502, message);
+  }
+
   static forbidden(message = "Forbidden") {
     return new ApiError(403, message);
   }

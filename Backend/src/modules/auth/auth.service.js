@@ -37,7 +37,17 @@ const register = async ({ fullName, email, password }) => {
     emailVerificationTokenExpires: Date.now() + 15 * 60 * 1000,
   });
 
-  await sendVerificationEmail(email, rawToken);
+  try {
+    await sendVerificationEmail(email, rawToken);
+  } catch {
+    try {
+      await User.deleteOne({ _id: user._id });
+    } catch {
+      throw ApiError.badGateway("Unable to send verification email. Please try again later.");
+    }
+
+    throw ApiError.badGateway("Unable to send verification email. Please try again later.");
+  }
 
   const userObj = user.toObject();
   delete userObj.password;
@@ -167,12 +177,21 @@ const resendVerificationEmail = async (email) => {
   }
 
   const { rawToken, hashedToken } = generateVerificationToken();
+  const previousToken = user.emailVerificationToken;
+  const previousTokenExpires = user.emailVerificationTokenExpires;
 
   user.emailVerificationToken = hashedToken;
   user.emailVerificationTokenExpires = Date.now() + 15 * 60 * 1000;
   await user.save({ validateBeforeSave: false });
 
-  await sendVerificationEmail(user.email, rawToken);
+  try {
+    await sendVerificationEmail(user.email, rawToken);
+  } catch {
+    user.emailVerificationToken = previousToken;
+    user.emailVerificationTokenExpires = previousTokenExpires;
+    await user.save({ validateBeforeSave: false });
+    throw ApiError.badGateway("Unable to send verification email. Please try again later.");
+  }
 
   return true;
 };

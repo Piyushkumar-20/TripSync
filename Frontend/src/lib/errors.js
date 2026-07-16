@@ -85,6 +85,30 @@ export function getAuthErrorMessage(
   const status = error?.response?.status;
   const backendMessage = error?.response?.data?.message;
 
+  if (/verify your email/i.test(backendMessage ?? "")) {
+    return "Please verify your email before logging in.";
+  }
+
+  if (/user already exist/i.test(backendMessage ?? "")) {
+    return "An account with this email already exists.";
+  }
+
+  if (/invalid or expired verification token/i.test(backendMessage ?? "")) {
+    return "This verification link is invalid or has expired.";
+  }
+
+  if (/email is already verified/i.test(backendMessage ?? "")) {
+    return "This email is already verified. You can log in now.";
+  }
+
+  if (/user does not exist/i.test(backendMessage ?? "")) {
+    return "We could not find an unverified account for that email.";
+  }
+
+  if (/unable to send verification email/i.test(backendMessage ?? "")) {
+    return "We could not send the verification email. Please try again.";
+  }
+
   if ([400, 401, 409, 422].includes(status) && isSafeUserMessage(backendMessage)) {
     return backendMessage;
   }

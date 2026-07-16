@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/context/AuthContext"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -25,7 +26,6 @@ export function SignupForm({ className, ...props }) {
   const navigate = useNavigate()
   const [form, setForm] = useState({ fullName: "", email: "", password: "", confirmPassword: "" })
   const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
   const [loading, setLoading] = useState(false)
 
   const handleChange = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
@@ -33,16 +33,15 @@ export function SignupForm({ className, ...props }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError("")
-    setSuccess("")
     if (form.password !== form.confirmPassword) {
       setError("Passwords do not match.")
       return
     }
     setLoading(true)
     try {
-      const response = await register({ fullName: form.fullName, email: form.email, password: form.password })
-      setSuccess(response?.message || "Verification email sent. Please check your inbox.")
-      setTimeout(() => navigate("/login", { state: { email: form.email } }), 2000)
+      await register({ fullName: form.fullName, email: form.email, password: form.password })
+      toast.success("Account created. Check your email to verify it.")
+      navigate("/check-email", { replace: true, state: { email: form.email } })
     } catch (err) {
       setError(getAuthErrorMessage(err, "Registration failed. Please try again."))
     } finally {
@@ -82,7 +81,6 @@ export function SignupForm({ className, ...props }) {
                 <FieldDescription>Must be at least 8 characters long.</FieldDescription>
               </Field>
               {error && <FieldError>{error}</FieldError>}
-              {success && <FieldDescription>{success}</FieldDescription>}
               <Field>
                 <Button type="submit" disabled={loading}>
                   {loading ? "Creating Account..." : "Create Account"}
