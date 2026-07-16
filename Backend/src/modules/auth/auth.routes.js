@@ -14,6 +14,8 @@ router.post("/login", validate(LoginDto), controller.login);
 router.post("/refresh-token", controller.refreshToken);
 router.post("/logout", authenticate, controller.logout);
 router.post("/google", controller.googleLogin);
+router.get("/verify-email/:token", controller.verifyEmail);
+router.post("/resend-verification", validate(ForgotPasswordDto), controller.resendVerificationEmail);
 router.post(
   "/forgot-password",
   validate(ForgotPasswordDto),

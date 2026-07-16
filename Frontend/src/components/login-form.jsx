@@ -23,13 +23,15 @@ import { initializeGoogle, promptGoogleSignIn } from "@/lib/google";
 import { getAuthErrorMessage } from "@/lib/errors";
 
 
-export function LoginForm({ className, ...props }) {
-  const { login, googleLogin } = useAuth();
+export function LoginForm({ className, initialEmail = "", ...props }) {
+  const { login, googleLogin, resendVerificationEmail } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({ email: initialEmail, password: "" });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [canResendVerification, setCanResendVerification] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
 
   const handleChange = (e) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
@@ -38,14 +40,33 @@ export function LoginForm({ className, ...props }) {
     e.preventDefault();
     setError("");
     setSuccess("");
+    setCanResendVerification(false);
     setLoading(true);
     try {
       await login({ email: form.email, password: form.password });
       navigate("/dashboard");
     } catch (err) {
-      setError(getAuthErrorMessage(err));
+      const message = getAuthErrorMessage(err);
+      setError(message);
+      setCanResendVerification(/verify your email/i.test(message));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setError("");
+    setSuccess("");
+    setResendLoading(true);
+
+    try {
+      const response = await resendVerificationEmail(form.email);
+      setSuccess(response?.message || "Verification email sent.");
+      setCanResendVerification(false);
+    } catch (err) {
+      setError(getAuthErrorMessage(err, "Unable to resend verification email."));
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -151,6 +172,22 @@ export function LoginForm({ className, ...props }) {
               </Field>
               {error && <FieldError>{error}</FieldError>}
               {success && <FieldDescription>{success}</FieldDescription>}
+              {canResendVerification && (
+                <Field>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={resendLoading || !form.email}
+                    onClick={handleResendVerification}
+                  >
+                    {resendLoading ? "Sending verification email..." : "Resend verification email"}
+                  </Button>
+                  <FieldDescription className="text-center">
+                    We will send a new verification link to the email you entered.
+                  </FieldDescription>
+                </Field>
+              )}
               <Field>
                 <Button type="submit" disabled={loading}>
                   {loading ? "Logging in..." : "Login"}

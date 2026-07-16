@@ -38,6 +38,14 @@ const userSchema = new mongoose.Schema(
       default: "local",
     },
 
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    emailVerificationToken: { type: String, select: false },
+    emailVerificationTokenExpires: { type: Date, select: false },
+
     avatar: {
       type: String,
     },

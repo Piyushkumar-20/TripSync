@@ -269,17 +269,17 @@ const spec = {
       post: makeOperation({
         tag: "Auth",
         summary: "Register a new user",
-        description: "Creates a new TripSync account.",
+        description: "Creates a new TripSync account and sends a verification email.",
         secured: false,
         requestBody: jsonRequest(schemas.RegisterInput),
-        responses: { 201: responses.created },
+        responses: { 201: { description: "Verification email sent" } },
       }),
     },
     [`${baseUrl}/auth/login`]: {
       post: makeOperation({
         tag: "Auth",
         summary: "Login with email and password",
-        description: "Authenticates a user and issues access credentials.",
+        description: "Authenticates a verified user and issues access credentials.",
         secured: false,
         requestBody: jsonRequest(schemas.LoginInput),
         responses: { 200: { description: "Login successful" } },
@@ -309,6 +309,26 @@ const spec = {
         description: "Completes Google OAuth login for an existing or new user.",
         secured: false,
         responses: { 200: { description: "Google login successful" } },
+      }),
+    },
+    [`${baseUrl}/auth/verify-email/{token}`]: {
+      get: makeOperation({
+        tag: "Auth",
+        summary: "Verify an email address",
+        description: "Marks the account as verified using the one-time email token.",
+        secured: false,
+        parameters: [pathParam("token", "Email verification token")],
+        responses: { 200: { description: "Email verified" } },
+      }),
+    },
+    [`${baseUrl}/auth/resend-verification`]: {
+      post: makeOperation({
+        tag: "Auth",
+        summary: "Resend the verification email",
+        description: "Sends a fresh verification link to an unverified account.",
+        secured: false,
+        requestBody: jsonRequest(schemas.ForgotPasswordInput),
+        responses: { 200: { description: "Verification email sent" } },
       }),
     },
     [`${baseUrl}/auth/forgot-password`]: {

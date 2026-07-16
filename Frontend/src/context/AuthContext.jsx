@@ -24,6 +24,11 @@ export function AuthProvider({ children }) {
     return res.data;
   };
 
+  const resendVerificationEmail = async (email) => {
+    const res = await api.post("/auth/resend-verification", { email });
+    return res.data;
+  };
+
   const login = async ({ email, password }) => {
     const res = await api.post("/auth/login", { email, password });
     const { user: loggedInUser, accessToken } = res.data.data;
@@ -61,6 +66,7 @@ export function AuthProvider({ children }) {
         login,
         logout,
         googleLogin,
+        resendVerificationEmail,
       }}
     >
       {children}

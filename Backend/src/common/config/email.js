@@ -33,6 +33,15 @@ const sendResetPasswordEmail = async (email, token) => {
   );
 };
 
+const sendVerificationEmail = async (email, token) => {
+  const url = `${process.env.CLIENT_URL}/verify-email/${token}`;
+  await sendEmail(
+    email,
+    "Verify your email",
+    `<h2>Verify your email</h2><p>Click <a href="${url}">here</a> to verify your email address. This link expires in 15 minutes.</p>`,
+  );
+};
+
 const sendMemberAddedEmail = async (toEmail, toName, tripTitle, inviterName) => {
   const url = `${process.env.CLIENT_URL}/trips`;
   await sendEmail(
@@ -69,4 +78,4 @@ const sendExpenseAddedEmail = async (toEmail, toName, tripTitle, expenseTitle, a
   );
 };
 
-export { sendResetPasswordEmail, sendMemberAddedEmail, sendExpenseAddedEmail };
+export { sendResetPasswordEmail, sendVerificationEmail, sendMemberAddedEmail, sendExpenseAddedEmail };

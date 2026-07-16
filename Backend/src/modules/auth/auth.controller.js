@@ -19,7 +19,7 @@ const clearCookieOptions = {
 
 const register = async (req, res) => {
   const user = await authService.register(req.body);
-  ApiResponse.created(res, "Account Created Succesfully!", user);
+  ApiResponse.created(res, "Verification email sent. Please check your inbox.", user);
 };
 
 const login = async (req, res) => {
@@ -54,6 +54,16 @@ const resetPassword = async (req, res) => {
   ApiResponse.ok(res, "Password Reset Successfully");
 };
 
+const verifyEmail = async (req, res) => {
+  const user = await authService.verifyEmail(req.params.token);
+  ApiResponse.ok(res, "Email verified successfully", user);
+};
+
+const resendVerificationEmail = async (req, res) => {
+  await authService.resendVerificationEmail(req.body.email);
+  ApiResponse.ok(res, "Verification email has been sent");
+};
+
 const getMe = async (req, res) => {
   const user = await authService.getMe(req.user.id);
   ApiResponse.ok(res, "User profile", user);
@@ -80,5 +90,7 @@ export {
   logout,
   forgetPassword,
   resetPassword,
+  verifyEmail,
+  resendVerificationEmail,
   getMe,
 };

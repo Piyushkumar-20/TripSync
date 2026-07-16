@@ -40,9 +40,9 @@ export function SignupForm({ className, ...props }) {
     }
     setLoading(true)
     try {
-      await register({ fullName: form.fullName, email: form.email, password: form.password })
-      setSuccess("Account created. You can now sign in.")
-      setTimeout(() => navigate("/login"), 2000)
+      const response = await register({ fullName: form.fullName, email: form.email, password: form.password })
+      setSuccess(response?.message || "Verification email sent. Please check your inbox.")
+      setTimeout(() => navigate("/login", { state: { email: form.email } }), 2000)
     } catch (err) {
       setError(getAuthErrorMessage(err, "Registration failed. Please try again."))
     } finally {

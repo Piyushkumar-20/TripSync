@@ -4,11 +4,13 @@ import User from "../users/user.model.js";
 import {
   generateAccessToken,
   generateRefreshToken,
+  generateVerificationToken,
   verifyRefreshToken,
 } from "../../common/utils/jwt.utils.js";
 
 import {
   sendResetPasswordEmail,
+  sendVerificationEmail,
 } from "../../common/config/email.js";
 import { OAuth2Client } from "google-auth-library";
 
@@ -24,14 +26,23 @@ const register = async ({ fullName, email, password }) => {
     throw ApiError.conflict("User already Exist");
   }
 
+  const { rawToken, hashedToken } = generateVerificationToken();
+
   const user = await User.create({
     fullName,
     email,
     password,
+    isEmailVerified: false,
+    emailVerificationToken: hashedToken,
+    emailVerificationTokenExpires: Date.now() + 15 * 60 * 1000,
   });
+
+  await sendVerificationEmail(email, rawToken);
 
   const userObj = user.toObject();
   delete userObj.password;
+  delete userObj.emailVerificationToken;
+  delete userObj.emailVerificationTokenExpires;
 
   return userObj;
 };
@@ -40,6 +51,10 @@ const login = async ({ email, password }) => {
   const user = await User.findOne({ email }).select("+password");
   if (!user) {
     throw ApiError.unauthorized("Invalid Email or Password");
+  }
+
+  if (user.provider === "local" && !user.isEmailVerified) {
+    throw ApiError.badRequest("Please verify your email before logging in.");
   }
 
   const verifyPassword = await user.comparePassword(password);
@@ -111,6 +126,57 @@ const forgetPassword = async (email) => {
   }
 };
 
+const verifyEmail = async (token) => {
+  const hashedToken = hashToken(token);
+
+  const user = await User.findOne({
+    emailVerificationToken: hashedToken,
+    emailVerificationTokenExpires: { $gt: Date.now() },
+  }).select("+emailVerificationToken +emailVerificationTokenExpires");
+
+  if (!user) {
+    throw ApiError.badRequest("Invalid or expired verification token");
+  }
+
+  user.isEmailVerified = true;
+  user.emailVerificationToken = undefined;
+  user.emailVerificationTokenExpires = undefined;
+
+  await user.save({ validateBeforeSave: false });
+
+  const userObj = user.toObject();
+  delete userObj.password;
+  delete userObj.refreshToken;
+  delete userObj.emailVerificationToken;
+  delete userObj.emailVerificationTokenExpires;
+
+  return userObj;
+};
+
+const resendVerificationEmail = async (email) => {
+  const user = await User.findOne({ email }).select(
+    "+emailVerificationToken +emailVerificationTokenExpires",
+  );
+
+  if (!user) {
+    throw ApiError.badRequest("User does not exist");
+  }
+
+  if (user.isEmailVerified) {
+    throw ApiError.conflict("Email is already verified");
+  }
+
+  const { rawToken, hashedToken } = generateVerificationToken();
+
+  user.emailVerificationToken = hashedToken;
+  user.emailVerificationTokenExpires = Date.now() + 15 * 60 * 1000;
+  await user.save({ validateBeforeSave: false });
+
+  await sendVerificationEmail(user.email, rawToken);
+
+  return true;
+};
+
 const resetPassword = async (token, newPassword) => {
   const hashedToken = hashToken(token);
 
@@ -176,11 +242,15 @@ const googleLogin = async ({ idToken }) => {
       provider: "google",
       googleId,
       avatar: picture,
+      isEmailVerified: true,
     });
   } else if (!user.provider || user.provider === "local") {
     user.provider = "google";
     user.googleId = googleId;
     user.avatar = picture;
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationTokenExpires = undefined;
 
     await user.save({ validateBeforeSave: false });
   }
@@ -195,6 +265,8 @@ const googleLogin = async ({ idToken }) => {
   const userObj = user.toObject();
   delete userObj.password;
   delete userObj.refreshToken;
+  delete userObj.emailVerificationToken;
+  delete userObj.emailVerificationTokenExpires;
 
   return {
     user: userObj,
@@ -210,5 +282,7 @@ export {
   logout,
   forgetPassword,
   resetPassword,
+  verifyEmail,
+  resendVerificationEmail,
   getMe,
 };
