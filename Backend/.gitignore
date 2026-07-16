@@ -52,3 +52,7 @@ uploads/
 
 # Misc
 *.tgz
+
+.pnpm-store/
+pnpm-store/
+.agents/
