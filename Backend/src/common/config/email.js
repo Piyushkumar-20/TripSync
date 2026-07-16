@@ -3,31 +3,44 @@ import dns from "node:dns";
 
 dns.setDefaultResultOrder("ipv4first");
 
-const requiredSmtpEnv = [
-  "SMTP_HOST",
-  "SMTP_PORT",
-  "SMTP_USER",
-  "SMTP_PASS",
+const getEmailProvider = () =>
+  (process.env.EMAIL_PROVIDER || (process.env.BREVO_API_KEY ? "brevo" : "smtp")).toLowerCase();
+
+const requiredCommonEnv = [
   "SMTP_FROM_NAME",
   "SMTP_FROM_EMAIL",
   "CLIENT_URL",
 ];
 
-const assertSmtpConfig = () => {
-  const missing = requiredSmtpEnv.filter((key) => !process.env[key]);
+const requiredSmtpEnv = [
+  "SMTP_HOST",
+  "SMTP_PORT",
+  "SMTP_USER",
+  "SMTP_PASS",
+];
+
+const requiredBrevoEnv = ["BREVO_API_KEY"];
+
+const assertEmailConfig = () => {
+  const provider = getEmailProvider();
+  const providerEnv = provider === "brevo" ? requiredBrevoEnv : requiredSmtpEnv;
+  const missing = [...requiredCommonEnv, ...providerEnv].filter((key) => !process.env[key]);
+
   if (missing.length > 0) {
-    const error = new Error(`Missing SMTP configuration: ${missing.join(", ")}`);
-    error.code = "SMTP_CONFIG_MISSING";
+    const error = new Error(`Missing email configuration: ${missing.join(", ")}`);
+    error.code = "EMAIL_CONFIG_MISSING";
     throw error;
   }
 };
 
-const getSmtpConfigSummary = () => ({
+const getEmailConfigSummary = () => ({
+  provider: getEmailProvider(),
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT) || 587,
   secure: Number(process.env.SMTP_PORT) === 465,
   userConfigured: Boolean(process.env.SMTP_USER),
   passConfigured: Boolean(process.env.SMTP_PASS),
+  brevoKeyConfigured: Boolean(process.env.BREVO_API_KEY),
   fromEmail: process.env.SMTP_FROM_EMAIL,
   clientUrl: getClientUrl(),
 });
@@ -54,9 +67,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const sendEmail = async (to, subject, html) => {
-  assertSmtpConfig();
-
+const sendEmailWithSmtp = async (to, subject, html) => {
   try {
     await transporter.sendMail({
       from: `"${process.env.SMTP_FROM_NAME}" <${process.env.SMTP_FROM_EMAIL}>`,
@@ -68,7 +79,7 @@ const sendEmail = async (to, subject, html) => {
     console.log("Email sent successfully");
   } catch (error) {
     console.error("\n========== SMTP ERROR ==========");
-    console.error("Config:", getSmtpConfigSummary());
+    console.error("Config:", getEmailConfigSummary());
     console.error("Message:", error.message);
     console.error("Code:", error.code);
     console.error("Response Code:", error.responseCode);
@@ -79,6 +90,66 @@ const sendEmail = async (to, subject, html) => {
 
     throw error;
   }
+};
+
+const sendEmailWithBrevo = async (to, subject, html) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
+  try {
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "api-key": process.env.BREVO_API_KEY,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        sender: {
+          name: process.env.SMTP_FROM_NAME,
+          email: process.env.SMTP_FROM_EMAIL,
+        },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const responseText = await response.text();
+      const error = new Error(`Brevo email API failed with status ${response.status}`);
+      error.code = "BREVO_API_ERROR";
+      error.responseCode = response.status;
+      error.response = responseText;
+      throw error;
+    }
+
+    console.log("Email sent successfully");
+  } catch (error) {
+    console.error("\n========== EMAIL API ERROR ==========");
+    console.error("Config:", getEmailConfigSummary());
+    console.error("Message:", error.message);
+    console.error("Code:", error.code);
+    console.error("Response Code:", error.responseCode);
+    console.error("Response:", error.response);
+    console.error("=====================================\n");
+
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const sendEmail = async (to, subject, html) => {
+  assertEmailConfig();
+
+  if (getEmailProvider() === "brevo") {
+    await sendEmailWithBrevo(to, subject, html);
+    return;
+  }
+
+  await sendEmailWithSmtp(to, subject, html);
 };
 
 const sendResetPasswordEmail = async (email, token) => {
