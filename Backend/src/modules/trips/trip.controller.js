@@ -53,8 +53,39 @@ const generateShareLink = async (req, res) => {
     userId: req.user._id,
   });
 
-  ApiResponse.ok(res, "Share link generated successfully.", result)
-
+  ApiResponse.ok(res, "Share link generated successfully.", result);
 };
 
-export { createTrip, getAlltrip, updateTrip, deletetrip, uploadCover, generateShareLink };
+const getTripByShareLink = async (req, res) => {
+  const { token } = req.params;
+
+  const result = await tripService.getTripByShareLink({ token });
+
+  ApiResponse.ok(res, "Share link validated successfully.", result);
+};
+
+const acceptShareLink = async (req, res) => {
+  const { token } = req.params;
+
+  const result = await tripService.acceptShareLink({
+    token,
+    userId: req.user.id,
+  });
+
+  ApiResponse.created(
+    res,
+    "Trip joined successfully.",
+    result
+  );
+};
+
+export {
+  createTrip,
+  getAlltrip,
+  updateTrip,
+  deletetrip,
+  uploadCover,
+  generateShareLink,
+  getTripByShareLink,
+  acceptShareLink
+};

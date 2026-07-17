@@ -41,8 +41,8 @@ const tripSchema = new mongoose.Schema(
       },
       role: {
         type: String,
-        enum: ["viewer", "editor"],
-        default: "viewer",
+        enum: ["Viewer", "Editor"],
+        default: "Viewer",
       },
       isEnabled: {
         type: Boolean,

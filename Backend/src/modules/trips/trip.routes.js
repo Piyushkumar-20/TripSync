@@ -43,6 +43,14 @@ router.post(
   controller.generateShareLink,
 );
 
+router.get("/invite/:token", authenticate, controller.getTripByShareLink);
+
+router.post(
+  "/invite/:token/accept",
+  authenticate,
+  controller.acceptShareLink,
+);
+
 router.patch(
   "/:tripId/cover",
   upload.single("cover"),

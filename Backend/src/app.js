@@ -24,7 +24,7 @@ const allowedOrigins = (process.env.CLIENT_URL || "")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
-console.log(allowedOrigins)
+
 const corsOptions = {
   origin(origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -36,7 +36,7 @@ const corsOptions = {
   },
   credentials: true,
 };
-console.log(corsOptions)
+
 app.use(compression());
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 app.use(cors(corsOptions));

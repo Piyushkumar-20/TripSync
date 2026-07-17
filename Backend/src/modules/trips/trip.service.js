@@ -49,7 +49,7 @@ const deleteTrip = async (tripId) => {
   return trip;
 };
 
-const generateShareLink = async ({ tripId, userId }) => {
+const generateShareLink = async ({ tripId }) => {
   const trip = await Trip.findById(tripId);
   if (!trip) throw ApiError.notFound("Trip Not Found!");
 
@@ -63,7 +63,7 @@ const generateShareLink = async ({ tripId, userId }) => {
 
   trip.shareLink = {
     token,
-    role: "viewer",
+    role: "Viewer",
     isEnabled: true,
     expiresAt: null,
   };
@@ -75,4 +75,80 @@ const generateShareLink = async ({ tripId, userId }) => {
   };
 };
 
-export { createTrip, getAllTrip, updateTrip, deleteTrip, generateShareLink };
+const getTripByShareLink = async ({ token }) => {
+  const trip = await Trip.findOne({
+    "shareLink.token": token,
+  }).populate("owner", "fullName email");
+
+  if (!trip) {
+    throw ApiError.notFound("Invalid share link.");
+  }
+
+  if (!trip.shareLink.isEnabled) {
+    throw ApiError.badRequest("This share link has been disabled.");
+  }
+
+  if (trip.shareLink.expiresAt && trip.shareLink.expiresAt < new Date()) {
+    throw ApiError.badRequest("This share link has expired.");
+  }
+
+  return {
+    tripId: trip._id,
+    title: trip.title,
+    description: trip.description,
+    owner: trip.owner,
+    role: trip.shareLink.role,
+  };
+};
+
+const acceptShareLink = async ({ token, userId }) => {
+  console.log("TOKEN:", token);
+  console.log("USER ID:", userId);
+  const trip = await Trip.findOne({
+    "shareLink.token": token,
+  });
+
+  if (!trip) {
+    throw ApiError.notFound("Invalid share link.");
+  }
+
+  if (!trip.shareLink.isEnabled) {
+    throw ApiError.badRequest("This share link has been disabled.");
+  }
+
+  if (
+    trip.shareLink.expiresAt &&
+    trip.shareLink.expiresAt < new Date()
+  ) {
+    throw ApiError.badRequest("This share link has expired.");
+  }
+
+  const existingMember = await Member.findOne({
+    tripId: trip._id,
+    userId,
+  });
+
+  if (existingMember) {
+    throw ApiError.conflict("You are already a member of this trip.");
+  }
+
+  await Member.create({
+    tripId: trip._id,
+    userId,
+    role: trip.shareLink.role,
+  });
+
+  return {
+    tripId: trip._id,
+  };
+};
+
+export {
+  createTrip,
+  getAllTrip,
+  updateTrip,
+  deleteTrip,
+  generateShareLink,
+  getTripByShareLink,
+  acceptShareLink
+};
