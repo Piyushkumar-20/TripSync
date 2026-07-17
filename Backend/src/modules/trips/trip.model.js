@@ -34,7 +34,25 @@ const tripSchema = new mongoose.Schema(
       required: true,
     },
 
-    coverImage: { type: String, default: null },
+    shareLink: {
+      token: {
+        type: String,
+        default: null,
+      },
+      role: {
+        type: String,
+        enum: ["viewer", "editor"],
+        default: "viewer",
+      },
+      isEnabled: {
+        type: Boolean,
+        default: false,
+      },
+      expiresAt: {
+        type: Date,
+        default: null,
+      },
+    },
   },
   { timestamps: true },
 );

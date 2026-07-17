@@ -45,4 +45,16 @@ const uploadCover = async (req, res) => {
   ApiResponse.ok(res, "Cover image uploaded", trip);
 };
 
-export { createTrip, getAlltrip, updateTrip, deletetrip, uploadCover };
+const generateShareLink = async (req, res) => {
+  const { tripId } = req.params;
+
+  const result = await tripService.generateShareLink({
+    tripId,
+    userId: req.user._id,
+  });
+
+  ApiResponse.ok(res, "Share link generated successfully.", result)
+
+};
+
+export { createTrip, getAlltrip, updateTrip, deletetrip, uploadCover, generateShareLink };
