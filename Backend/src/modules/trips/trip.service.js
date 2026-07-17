@@ -102,8 +102,6 @@ const getTripByShareLink = async ({ token }) => {
 };
 
 const acceptShareLink = async ({ token, userId }) => {
-  console.log("TOKEN:", token);
-  console.log("USER ID:", userId);
   const trip = await Trip.findOne({
     "shareLink.token": token,
   });
