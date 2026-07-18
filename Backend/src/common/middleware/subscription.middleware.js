@@ -7,7 +7,7 @@ import ApiError from "../utils/api-error.js";
  * Allows only Pro users.
  * Used for premium features like Share via Link.
  */
-export const requirePro = async (req, res, next) => {
+ const requirePro = async (req, res, next) => {
   let ownerId = req.user.id;
 
   if (req.params.tripId) {
@@ -45,7 +45,7 @@ export const requirePro = async (req, res, next) => {
 /**
  * Free plan can create only 3 trips.
  */
-export const checkTripLimit = async (req, res, next) => {
+ const checkTripLimit = async (req, res, next) => {
   const subscription = await Subscription.findOne({
     userId: req.user.id,
   });
@@ -74,7 +74,7 @@ export const checkTripLimit = async (req, res, next) => {
 /**
  * Free plan can have only 5 members per trip.
  */
-export const checkMemberLimit = async (req, res, next) => {
+const checkMemberLimit = async (req, res, next) => {
   const trip = await Trip.findById(req.params.tripId);
 
   if (!trip) {
@@ -105,3 +105,5 @@ export const checkMemberLimit = async (req, res, next) => {
 
   next();
 };
+
+export {requirePro, checkTripLimit, checkMemberLimit}

@@ -8,7 +8,7 @@ import {
 import * as controller from "./tripMember.controller.js";
 import AddMemberDto from "./dto/add-member.dto.js";
 import UpdateMemberRoleDto from "./dto/update-member-role.dto.js";
-import checkMemberLimit from "../../common/middleware/subscription.middleware.js";
+import {checkMemberLimit} from "../../common/middleware/subscription.middleware.js"
 
 const router = Router();
 
