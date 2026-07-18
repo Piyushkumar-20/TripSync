@@ -8,12 +8,19 @@ import {
 import * as controller from "./trip.controller.js";
 import CreateTripDto from "./dto/create-trip.dto.js";
 import { upload } from "../../common/middleware/upload.js";
+import {
+  checkTripLimit,
+  requirePro,
+} from "../../common/middleware/subscription.middleware.js"
+
+
 
 const router = Router();
 
 router.post(
   "/create-trip",
   authenticate,
+  checkTripLimit,
   validate(CreateTripDto),
   controller.createTrip,
 );
@@ -40,6 +47,7 @@ router.post(
   authenticate,
   loadTripRole,
   requireRole("Owner"),
+  requirePro,
   controller.generateShareLink,
 );
 
