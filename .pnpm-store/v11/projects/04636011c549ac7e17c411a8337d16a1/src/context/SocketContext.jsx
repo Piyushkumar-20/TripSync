@@ -1,19 +1,19 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
-
-const SocketContext = createContext(null);
+import SocketContext from "./SocketContext";
+import { getAccessToken } from "@/lib/authToken";
 
 export function SocketProvider({ children }) {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
+    const token = getAccessToken();
     if (!token) return;
 
     let active = true;
 
     const newSocket = io(import.meta.env.VITE_API_URL, {
-      auth: (cb) => cb({ token: `Bearer ${localStorage.getItem("accessToken")}` }),
+      auth: (cb) => cb({ token: `Bearer ${getAccessToken()}` }),
     });
 
     newSocket.on("connect", () => {
@@ -33,5 +33,3 @@ export function SocketProvider({ children }) {
     </SocketContext.Provider>
   );
 }
-
-export const useSocket = () => useContext(SocketContext);

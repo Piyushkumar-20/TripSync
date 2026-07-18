@@ -36,6 +36,7 @@ import { Separator } from "@/components/ui/separator";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/context/AuthContext";
 import ThemeToggle from "@/components/shared/ThemeToggle";
+import { clearAccessToken } from "@/lib/authToken";
 
 const topNavItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -69,7 +70,7 @@ function AppSidebar() {
     try {
       await logout();
     } catch {
-      localStorage.removeItem("accessToken");
+      clearAccessToken();
     }
   };
 

@@ -1,22 +1,46 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import api from "@/lib/api";
+import {
+  clearAccessToken,
+  getAccessToken,
+  setAccessToken,
+} from "@/lib/authToken";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(() => !!localStorage.getItem("accessToken"));
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) return;
-    api.get("/auth/me")
-      .then((res) => setUser(res.data.data))
-      .catch(() => {
-        localStorage.removeItem("accessToken");
+    const bootstrapAuth = async () => {
+      try {
+        let token = getAccessToken();
+
+        if (!token) {
+          const refreshResponse = await api.post("/auth/refresh-token");
+          token = refreshResponse?.data?.data?.accessToken;
+          if (token) {
+            setAccessToken(token);
+          }
+        }
+
+        if (!token) {
+          setUser(null);
+          return;
+        }
+
+        const meResponse = await api.get("/auth/me");
+        setUser(meResponse.data.data);
+      } catch {
+        clearAccessToken();
         setUser(null);
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    bootstrapAuth();
   }, []);
 
   const register = async ({ fullName, email, password }) => {
@@ -31,8 +55,9 @@ export function AuthProvider({ children }) {
 
   const login = async ({ email, password }) => {
     const res = await api.post("/auth/login", { email, password });
-    const { user: loggedInUser, accessToken } = res.data.data;
-    localStorage.setItem("accessToken", accessToken);
+    const loggedInUser = res?.data?.data?.user;
+    const accessToken = res?.data?.data?.accessToken;
+    setAccessToken(accessToken);
     setUser(loggedInUser);
     return loggedInUser;
   };
@@ -41,7 +66,7 @@ export function AuthProvider({ children }) {
     try {
       await api.post("/auth/logout");
     } finally {
-      localStorage.removeItem("accessToken");
+      clearAccessToken();
       setUser(null);
     }
   };
@@ -52,7 +77,7 @@ export function AuthProvider({ children }) {
       accessToken: googleAccessToken,
     })
     const { accessToken, user } = res.data.data;
-    localStorage.setItem("accessToken", accessToken)
+    setAccessToken(accessToken)
     setUser(user)
 
     return user

@@ -1,6 +1,11 @@
 import axios from "axios";
 import { toast } from "sonner";
 import { ERROR_MESSAGES } from "@/lib/errors";
+import {
+  clearAccessToken,
+  getAccessToken,
+  setAccessToken,
+} from "@/lib/authToken";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 const REFRESH_TOKEN_URL = "/auth/refresh-token";
@@ -11,9 +16,16 @@ const api = axios.create({
   timeout: 20000,
 });
 
+const setAuthorizationHeader = (headers, token) => {
+  headers.Authorization = `Bearer ${token}`;
+};
+
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  const token = getAccessToken();
+  if (token) {
+    config.headers = config.headers || {};
+    setAuthorizationHeader(config.headers, token);
+  }
   return config;
 });
 
@@ -44,7 +56,7 @@ api.interceptors.response.use(
           failedQueue.push({ resolve, reject });
         }).then((token) => {
           originalRequest.headers = originalRequest.headers || {};
-          originalRequest.headers.Authorization = `Bearer ${token}`;
+          setAuthorizationHeader(originalRequest.headers, token);
           return api(originalRequest);
         });
       }
@@ -54,18 +66,20 @@ api.interceptors.response.use(
 
       try {
         const res = await api.post(REFRESH_TOKEN_URL);
-        const newToken = res.data.data.accessToken;
+        const newToken = res?.data?.data?.accessToken;
+        if (typeof newToken !== "string" || !newToken.trim()) {
+          throw new Error("Missing access token in refresh response.");
+        }
 
-        localStorage.setItem("accessToken", newToken);
-        api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+        setAccessToken(newToken);
         originalRequest.headers = originalRequest.headers || {};
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        setAuthorizationHeader(originalRequest.headers, newToken);
 
         processQueue(null, newToken);
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        localStorage.removeItem("accessToken");
+        clearAccessToken();
         toast.error(ERROR_MESSAGES.sessionExpired);
         window.location.href = "/login";
         return Promise.reject(refreshError);
