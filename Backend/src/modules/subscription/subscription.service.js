@@ -1,12 +1,12 @@
 import crypto from "crypto";
-import ApiError from "../.././common/utils/api-error.js"
+import ApiError from "../.././common/utils/api-error.js";
 
 const createOrder = async ({ userId, plan }) => {
   // Validate Plan
   const planDetails = Object.values(PLANS).find((item) => item.name === plan);
 
   if (!planDetails) {
-    throw new ApiError.badGateway("Invalid subscription plan.")
+    throw new ApiError.badGateway("Invalid subscription plan.");
   }
 
   // Find existing subscription
@@ -60,7 +60,6 @@ const createOrder = async ({ userId, plan }) => {
     receipt,
   };
 };
-
 
 const verifyPayment = async ({
   userId,
@@ -128,4 +127,13 @@ const verifyPayment = async ({
   };
 };
 
-export { createOrder, verifyPayment };
+const getMySubscription = async ({ userId }) => {
+  const subscription = await Subscription.findOne({ userId }).lean();
+
+  if (!subscription) {
+    throw new ApiError.notFound("Payment not found.");
+  }
+
+  return subscription;
+};
+export { createOrder, verifyPayment, getMySubscription };

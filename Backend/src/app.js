@@ -5,6 +5,7 @@ import express from "express";
 import http from "node:http";
 import { Server } from "socket.io";
 import { apiReference } from "@scalar/express-api-reference";
+import openApiSpec from "./common/docs/openapi.js";
 
 import authRoute from "./modules/auth/auth.routes.js";
 import tripRoute from "./modules/trips/trip.routes.js";
@@ -15,7 +16,8 @@ import documentRoute from "./modules/documents/document.routes.js";
 import activityRoute from "./modules/activity/activity.routes.js";
 import commentRoute from "./modules/comments/comment.routes.js";
 import checklistRoute from "./modules/checklists/checklistItem.routes.js";
-import openApiSpec from "./common/docs/openapi.js";
+import subscriptionRoute from "./modules/subscription/subscription.routes.js"
+
 
 const app = express();
 
@@ -71,7 +73,7 @@ app.use("/api/v1/trips", documentRoute);
 app.use("/api/v1/trips", activityRoute);
 app.use("/api/v1/trips", commentRoute);
 app.use("/api/v1/trips/checklists", checklistRoute);
-
+app.use("/api/v1/subscriptions", subscriptionRoute);
 
 app.use((err, req, res, next) => {
   const status = err.status || 500;
