@@ -1,8 +1,9 @@
 import express from "express";
 
 import * as subscriptionController from "./subscription.controller.js";
-import authenticate from "../../middlewares/authenticate.js";
-
+import authenticate from "../auth/auth.middleware.js"
+import validate from "../../common/validators/validator.js";
+import { verifyPaymentDto, createOrderDto } from "./dto/subscription.dto.js"
 const router = express.Router();
 
 router.get(
@@ -14,12 +15,14 @@ router.get(
 router.post(
   "/create-order",
   authenticate,
+  validate(createOrderDto),
   subscriptionController.createOrder,
 );
 
 router.post(
   "/verify",
   authenticate,
+  validate(verifyPaymentDto),
   subscriptionController.verifyPayment,
 );
 
