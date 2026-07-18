@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <script>
+      (function () {
+        var t = localStorage.getItem("tripsync-theme") || "system";
+        var isDark =
+          t === "dark" ||
+          (t === "system" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+        if (isDark) document.documentElement.classList.add("dark");
+      })();
+    </script>
+
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TripSync</title>
+    <script type="module" crossorigin src="/assets/index-CWw1GJZi.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Cl4YMJyG.css">
+  </head>
+
+  <body>
+    <div id="root"></div>
+
+    <!-- Google Identity Services -->
+    <script
+      src="https://accounts.google.com/gsi/client"
+      async
+      defer
+    ></script>
+
+  </body>
+</html>

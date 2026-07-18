@@ -5,6 +5,25 @@ import { subscriptionService } from "@/services/subscriptionService";
 
 const RAZORPAY_SCRIPT_ID = "razorpay-checkout-js";
 
+function getRazorpayKey(order) {
+  return order?.key || import.meta.env.VITE_RAZORPAY_KEY_ID;
+}
+
+function assertValidOrder(order) {
+  const key = getRazorpayKey(order);
+  const orderId = order?.order_id || order?.orderId;
+
+  if (!key) {
+    throw new Error("Payment key is missing. Please contact support.");
+  }
+
+  if (!orderId || !order?.amount || !order?.currency) {
+    throw new Error("Payment order is incomplete. Please try again.");
+  }
+
+  return { key, orderId };
+}
+
 function loadRazorpayScript() {
   if (window.Razorpay) return Promise.resolve(true);
 
@@ -46,15 +65,16 @@ export const useUpgradeSubscription = ({ user } = {}) => {
 
       const orderRes = await subscriptionService.createOrder({ plan: "Pro" });
       const order = orderRes.data.data;
+      const { key, orderId } = assertValidOrder(order);
 
       return await new Promise((resolve, reject) => {
         const checkout = new window.Razorpay({
-          key: order.key || import.meta.env.VITE_RAZORPAY_KEY_ID,
+          key,
           amount: order.amount,
           currency: order.currency,
           name: "TripSync",
           description: "Pro subscription",
-          order_id: order.order_id || order.orderId,
+          order_id: orderId,
           prefill: {
             name: user?.fullName || "",
             email: user?.email || "",

@@ -21,6 +21,10 @@ class ApiError extends Error {
     return new ApiError(502, message);
   }
 
+  static internal(message = "Internal Server Error") {
+    return new ApiError(500, message);
+  }
+
   static forbidden(message = "Forbidden") {
     return new ApiError(403, message);
   }

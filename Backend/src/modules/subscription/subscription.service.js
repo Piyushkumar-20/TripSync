@@ -62,7 +62,7 @@ const createOrder = async ({ userId, plan }) => {
 
   const credentials = getRazorpayCredentials();
   if (!credentials) {
-    throw ApiError.badGateway("Payment provider is not configured.");
+    throw ApiError.internal("Payment provider is not configured.");
   }
 
   if (
@@ -89,7 +89,11 @@ const createOrder = async ({ userId, plan }) => {
     });
   } catch (error) {
     if (error.code === "RAZORPAY_CONFIG_MISSING") {
-      throw ApiError.badGateway("Payment provider is not configured.");
+      throw ApiError.internal("Payment provider is not configured.");
+    }
+
+    if (error.statusCode === 401) {
+      throw ApiError.unauthorized("Payment provider authentication failed.");
     }
 
     console.error("Razorpay order creation failed:", {
@@ -98,7 +102,7 @@ const createOrder = async ({ userId, plan }) => {
       message: error.message,
     });
 
-    throw ApiError.badGateway("Unable to create payment order. Please try again.");
+    throw ApiError.internal("Unable to create payment order. Please try again.");
   }
 
   await Payment.create({
@@ -149,7 +153,7 @@ const verifyPayment = async ({
 
   const credentials = getRazorpayCredentials();
   if (!credentials) {
-    throw ApiError.badGateway("Payment provider is not configured.");
+    throw ApiError.internal("Payment provider is not configured.");
   }
 
   const generatedSignature = crypto
