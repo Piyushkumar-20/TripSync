@@ -95,7 +95,7 @@ export const useUpgradeSubscription = ({ user } = {}) => {
     onError: (err) => {
       const message = /cancelled/i.test(err?.message ?? "")
         ? "Payment was cancelled."
-        : getUserErrorMessage(err, err?.message || "Payment failed. Please try again.");
+        : getUserErrorMessage(err, "Payment failed. Please try again.");
       toast.error(message);
     },
   });

@@ -74,7 +74,7 @@ const createOrder = async ({ userId, plan }) => {
     throw ApiError.conflict("You already have an active Pro subscription.");
   }
 
-  const receipt = `receipt_${crypto.randomUUID()}`;
+  const receipt = `rcpt_${crypto.randomBytes(12).toString("hex")}`;
 
   let order;
   try {
