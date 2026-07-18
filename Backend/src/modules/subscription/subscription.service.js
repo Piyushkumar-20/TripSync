@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import ApiError from "../../common/utils/api-error.js";
-import razorpay from "../../providers/razorpay/razorpay.js";
+import getRazorpayClient from "../../providers/razorpay/razorpay.js";
 import PLANS from "../../common/constants/plan.js";
 import Payment from "./payment_history.model.js";
 import Subscription from "./subscription.model.js";
@@ -57,6 +57,11 @@ const createOrder = async ({ userId, plan }) => {
   );
 
   if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    throw ApiError.badGateway("Payment provider is not configured.");
+  }
+
+  const razorpay = getRazorpayClient();
+  if (!razorpay) {
     throw ApiError.badGateway("Payment provider is not configured.");
   }
 
