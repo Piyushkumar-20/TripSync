@@ -13,6 +13,7 @@ import {
   sendVerificationEmail,
 } from "../../common/config/email.js";
 import { OAuth2Client } from "google-auth-library";
+import Subscription from "../subscription/subscription.model.js";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -37,16 +38,26 @@ const register = async ({ fullName, email, password }) => {
     emailVerificationTokenExpires: Date.now() + 15 * 60 * 1000,
   });
 
+  await Subscription.create({
+    userId: user._id,
+    plan: "Free",
+    status: "Active",
+  });
+
   try {
     await sendVerificationEmail(email, rawToken);
   } catch {
     try {
       await User.deleteOne({ _id: user._id });
     } catch {
-      throw ApiError.badGateway("Unable to send verification email. Please try again later.");
+      throw ApiError.badGateway(
+        "Unable to send verification email. Please try again later.",
+      );
     }
 
-    throw ApiError.badGateway("Unable to send verification email. Please try again later.");
+    throw ApiError.badGateway(
+      "Unable to send verification email. Please try again later.",
+    );
   }
 
   const userObj = user.toObject();
@@ -131,8 +142,7 @@ const forgetPassword = async (email) => {
 
   try {
     await sendResetPasswordEmail(email, rawToken);
-  } catch {
-  }
+  } catch {}
 };
 
 const verifyEmail = async (token) => {
@@ -189,7 +199,9 @@ const resendVerificationEmail = async (email) => {
     user.emailVerificationToken = previousToken;
     user.emailVerificationTokenExpires = previousTokenExpires;
     await user.save({ validateBeforeSave: false });
-    throw ApiError.badGateway("Unable to send verification email. Please try again later.");
+    throw ApiError.badGateway(
+      "Unable to send verification email. Please try again later.",
+    );
   }
 
   return true;
@@ -236,13 +248,7 @@ const googleLogin = async ({ idToken }) => {
     throw ApiError.unauthorized("Invalid Google token");
   }
 
-  const {
-    sub: googleId,
-    email,
-    name,
-    picture,
-    email_verified,
-  } = payload;
+  const { sub: googleId, email, name, picture, email_verified } = payload;
 
   if (!email_verified) {
     throw ApiError.unauthorized("Google email is not verified");
@@ -261,6 +267,12 @@ const googleLogin = async ({ idToken }) => {
       googleId,
       avatar: picture,
       isEmailVerified: true,
+    });
+
+    await Subscription.create({
+      userId: user._id,
+      plan: "Free",
+      status: "Active",
     });
   } else if (!user.provider || user.provider === "local") {
     user.provider = "google";
