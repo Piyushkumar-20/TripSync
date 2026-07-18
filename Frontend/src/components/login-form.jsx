@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useGoogleLogin } from "@react-oauth/google";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,6 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { initializeGoogle, promptGoogleSignIn } from "@/lib/google";
 import { getAuthErrorMessage } from "@/lib/errors";
 
 
@@ -70,33 +70,30 @@ export function LoginForm({ className, initialEmail = "", ...props }) {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleAccessToken = async (accessToken) => {
     setError("");
     setSuccess("");
     setLoading(true);
 
     try {
-      await initializeGoogle(async (response) => {
-        try {
-          if (!response.credential) {
-            throw new Error("Google did not return a credential.");
-          }
+      if (!accessToken) {
+        throw new Error("Google did not return an access token.");
+      }
 
-          await googleLogin({ idToken: response.credential });
-          navigate("/dashboard");
-        } catch (err) {
-          setError(getAuthErrorMessage(err, "Google login failed. Please try again."));
-        } finally {
-          setLoading(false);
-        }
-      });
-
-      await promptGoogleSignIn();
+      await googleLogin({ accessToken });
+      navigate("/dashboard");
     } catch (err) {
       setError(getAuthErrorMessage(err, "Google login failed. Please try again."));
+    } finally {
       setLoading(false);
     }
   };
+
+  const startGoogleLogin = useGoogleLogin({
+    scope: "openid email profile",
+    onSuccess: (tokenResponse) => handleGoogleAccessToken(tokenResponse.access_token),
+    onError: () => setError("Google login failed. Please try again."),
+  });
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -125,7 +122,11 @@ export function LoginForm({ className, initialEmail = "", ...props }) {
                   variant="outline"
                   type="button"
                   disabled={loading}
-                  onClick={handleGoogleLogin}
+                  onClick={() => {
+                    setError("");
+                    setSuccess("");
+                    startGoogleLogin();
+                  }}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path

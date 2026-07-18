@@ -128,21 +128,22 @@ export default function SubscriptionPage() {
         </Card>
 
         <Card className="relative overflow-hidden border-primary/40">
-          <div className="absolute right-4 top-4">
-            <Badge variant="secondary">Best for groups</Badge>
-          </div>
           <CardHeader>
-            <div className="flex items-start justify-between gap-3 pr-24">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  Pro
-                  {isPro && <Badge>Current Plan</Badge>}
-                </CardTitle>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <CardTitle className="text-lg">Pro</CardTitle>
+                  {isPro ? (
+                    <Badge>Current Plan</Badge>
+                  ) : (
+                    <Badge variant="secondary">Best for groups</Badge>
+                  )}
+                </div>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Full collaboration for every itinerary.
                 </p>
               </div>
-              <div className="text-right">
+              <div className="shrink-0 text-right">
                 <p className="text-3xl font-bold">₹99</p>
                 <p className="text-xs text-muted-foreground">per month</p>
               </div>

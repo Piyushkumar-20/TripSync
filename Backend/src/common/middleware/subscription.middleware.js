@@ -1,5 +1,6 @@
 import Trip from "../../modules/trips/trip.model.js";
 import Member from "../../modules/members/tripMembers.model.js";
+import TripInvitation from "../../modules/members/tripInvitation.model.js";
 import ApiError from "../utils/api-error.js";
 import {
   ensureFreeSubscription,
@@ -84,13 +85,20 @@ const checkMemberLimit = async (req, res, next) => {
     return next();
   }
 
-  const memberCount = await Member.countDocuments({
-    tripId: req.params.tripId,
-  });
+  const [memberCount, pendingInviteCount] = await Promise.all([
+    Member.countDocuments({
+      tripId: req.params.tripId,
+    }),
+    TripInvitation.countDocuments({
+      tripId: req.params.tripId,
+      status: "Pending",
+      expiresAt: { $gt: new Date() },
+    }),
+  ]);
 
-  if (memberCount >= 5) {
+  if (memberCount + pendingInviteCount >= 5) {
     throw ApiError.forbidden(
-      "Free plan allows only 5 members per trip. Upgrade to Pro.",
+      "Free plan allows only 5 members or pending invites per trip. Upgrade to Pro.",
     );
   }
 

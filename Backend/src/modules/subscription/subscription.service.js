@@ -1,6 +1,10 @@
 import crypto from "crypto";
 import ApiError from "../../common/utils/api-error.js";
-import getRazorpayClient from "../../providers/razorpay/razorpay.js";
+import {
+  createRazorpayOrder,
+  getRazorpayCredentials,
+  getRazorpayPayment,
+} from "../../providers/razorpay/razorpay.js";
 import PLANS from "../../common/constants/plan.js";
 import Payment from "./payment_history.model.js";
 import Subscription from "./subscription.model.js";
@@ -56,12 +60,8 @@ const createOrder = async ({ userId, plan }) => {
     await ensureFreeSubscription(userId),
   );
 
-  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-    throw ApiError.badGateway("Payment provider is not configured.");
-  }
-
-  const razorpay = getRazorpayClient();
-  if (!razorpay) {
+  const credentials = getRazorpayCredentials();
+  if (!credentials) {
     throw ApiError.badGateway("Payment provider is not configured.");
   }
 
@@ -78,7 +78,7 @@ const createOrder = async ({ userId, plan }) => {
 
   let order;
   try {
-    order = await razorpay.orders.create({
+    order = await createRazorpayOrder({
       amount: planDetails.amount,
       currency: planDetails.currency,
       receipt,
@@ -87,7 +87,17 @@ const createOrder = async ({ userId, plan }) => {
         plan,
       },
     });
-  } catch {
+  } catch (error) {
+    if (error.code === "RAZORPAY_CONFIG_MISSING") {
+      throw ApiError.badGateway("Payment provider is not configured.");
+    }
+
+    console.error("Razorpay order creation failed:", {
+      code: error.code,
+      statusCode: error.statusCode,
+      message: error.message,
+    });
+
     throw ApiError.badGateway("Unable to create payment order. Please try again.");
   }
 
@@ -104,7 +114,7 @@ const createOrder = async ({ userId, plan }) => {
   });
 
   return {
-    key: process.env.RAZORPAY_KEY_ID,
+    key: credentials.keyId,
     order_id: order.id,
     orderId: order.id,
     amount: order.amount,
@@ -137,16 +147,50 @@ const verifyPayment = async ({
     throw ApiError.badRequest("Payment has already been verified.");
   }
 
+  const credentials = getRazorpayCredentials();
+  if (!credentials) {
+    throw ApiError.badGateway("Payment provider is not configured.");
+  }
+
   const generatedSignature = crypto
-    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+    .createHmac("sha256", credentials.keySecret)
     .update(`${razorpay_order_id}|${razorpay_payment_id}`)
     .digest("hex");
 
-  if (generatedSignature !== razorpay_signature) {
+  const generatedSignatureBuffer = Buffer.from(generatedSignature, "hex");
+  const receivedSignatureBuffer = Buffer.from(razorpay_signature, "hex");
+  const isValidSignature =
+    generatedSignatureBuffer.length === receivedSignatureBuffer.length &&
+    crypto.timingSafeEqual(generatedSignatureBuffer, receivedSignatureBuffer);
+
+  if (!isValidSignature) {
     payment.status = "Failed";
     await payment.save();
 
     throw ApiError.badRequest("Invalid payment signature.");
+  }
+
+  let providerPayment;
+  try {
+    providerPayment = await getRazorpayPayment(razorpay_payment_id);
+  } catch (error) {
+    console.error("Razorpay payment lookup failed:", {
+      code: error.code,
+      statusCode: error.statusCode,
+      message: error.message,
+    });
+    throw ApiError.badGateway("Unable to verify payment. Please try again.");
+  }
+
+  if (
+    providerPayment.order_id !== payment.orderId ||
+    providerPayment.amount !== payment.amount ||
+    providerPayment.currency !== payment.currency ||
+    !["captured", "authorized"].includes(providerPayment.status)
+  ) {
+    payment.status = "Failed";
+    await payment.save();
+    throw ApiError.badRequest("Payment verification failed.");
   }
 
   payment.paymentId = razorpay_payment_id;

@@ -70,10 +70,10 @@ const getMe = async (req, res) => {
 };
 
 const googleLogin = async (req, res) => {
-  const { idToken } = req.body;
+  const { idToken, accessToken: googleAccessToken } = req.body;
 
   const { user, accessToken, refreshToken } =
-    await authService.googleLogin({ idToken });
+    await authService.googleLogin({ idToken, accessToken: googleAccessToken });
 
   res.cookie("refreshToken", refreshToken, cookieOptions);
 

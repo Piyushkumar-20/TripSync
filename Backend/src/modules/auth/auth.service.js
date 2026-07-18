@@ -21,6 +21,65 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const hashToken = (token) =>
   crypto.createHash("sha256").update(token).digest("hex");
 
+const sanitizeUser = (user) => {
+  const userObj = user.toObject ? user.toObject() : { ...user };
+  delete userObj.password;
+  delete userObj.refreshToken;
+  delete userObj.emailVerificationToken;
+  delete userObj.emailVerificationTokenExpires;
+  delete userObj.resetPasswordToken;
+  delete userObj.resetPasswordTokenExpires;
+  return userObj;
+};
+
+const getGooglePayloadFromAccessToken = async (accessToken) => {
+  const tokenInfoUrl = new URL("https://www.googleapis.com/oauth2/v3/tokeninfo");
+  tokenInfoUrl.searchParams.set("access_token", accessToken);
+
+  const tokenInfoResponse = await fetch(tokenInfoUrl);
+  const tokenInfo = await tokenInfoResponse.json().catch(() => null);
+
+  if (
+    !tokenInfoResponse.ok ||
+    tokenInfo?.aud !== process.env.GOOGLE_CLIENT_ID
+  ) {
+    throw ApiError.unauthorized("Invalid Google token");
+  }
+
+  const response = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw ApiError.unauthorized("Invalid Google token");
+  }
+
+  return await response.json();
+};
+
+const getGooglePayload = async ({ idToken, accessToken }) => {
+  if (idToken) {
+    try {
+      const ticket = await client.verifyIdToken({
+        idToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+
+      return ticket.getPayload();
+    } catch {
+      throw ApiError.unauthorized("Invalid Google token");
+    }
+  }
+
+  if (accessToken) {
+    return await getGooglePayloadFromAccessToken(accessToken);
+  }
+
+  throw ApiError.badRequest("Google token is required");
+};
+
 const register = async ({ fullName, email, password }) => {
   const exist = await User.findOne({ email });
   if (exist) {
@@ -55,12 +114,7 @@ const register = async ({ fullName, email, password }) => {
     );
   }
 
-  const userObj = user.toObject();
-  delete userObj.password;
-  delete userObj.emailVerificationToken;
-  delete userObj.emailVerificationTokenExpires;
-
-  return userObj;
+  return sanitizeUser(user);
 };
 
 const login = async ({ email, password }) => {
@@ -85,11 +139,7 @@ const login = async ({ email, password }) => {
   await user.save({ validateBeforeSave: false });
   await ensureFreeSubscription(user._id);
 
-  const userObj = user.toObject();
-  delete userObj.password;
-  delete userObj.refreshToken;
-
-  return { user: userObj, refreshToken, accessToken };
+  return { user: sanitizeUser(user), refreshToken, accessToken };
 };
 
 /* JWTs are stateless. Once issued, there's no way to revoke them — they're valid until they expire.
@@ -159,13 +209,7 @@ const verifyEmail = async (token) => {
 
   await user.save({ validateBeforeSave: false });
 
-  const userObj = user.toObject();
-  delete userObj.password;
-  delete userObj.refreshToken;
-  delete userObj.emailVerificationToken;
-  delete userObj.emailVerificationTokenExpires;
-
-  return userObj;
+  return sanitizeUser(user);
 };
 
 const resendVerificationEmail = async (email) => {
@@ -227,22 +271,14 @@ const getMe = async (userId) => {
   if (!user) {
     throw ApiError.unauthorized("User does not exist");
   }
-  return user;
+  return sanitizeUser(user);
 };
 
-const googleLogin = async ({ idToken }) => {
-  let payload;
-
-  try {
-    const ticket = await client.verifyIdToken({
-      idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-
-    payload = ticket.getPayload();
-  } catch {
-    throw ApiError.unauthorized("Invalid Google token");
-  }
+const googleLogin = async ({ idToken, accessToken: googleAccessToken }) => {
+  const payload = await getGooglePayload({
+    idToken,
+    accessToken: googleAccessToken,
+  });
 
   const { sub: googleId, email, name, picture, email_verified } = payload;
 
@@ -285,14 +321,8 @@ const googleLogin = async ({ idToken }) => {
   await user.save({ validateBeforeSave: false });
   await ensureFreeSubscription(user._id);
 
-  const userObj = user.toObject();
-  delete userObj.password;
-  delete userObj.refreshToken;
-  delete userObj.emailVerificationToken;
-  delete userObj.emailVerificationTokenExpires;
-
   return {
-    user: userObj,
+    user: sanitizeUser(user),
     accessToken,
     refreshToken,
   };

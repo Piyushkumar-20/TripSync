@@ -46,9 +46,10 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const googleLogin = async({idToken}) => {
+  const googleLogin = async({ idToken, accessToken: googleAccessToken }) => {
     const res = await api.post("/auth/google", {
-      idToken
+      idToken,
+      accessToken: googleAccessToken,
     })
     const { accessToken, user } = res.data.data;
     localStorage.setItem("accessToken", accessToken)

@@ -51,6 +51,25 @@ const createInvitation = async ({ tripId, email, role, currentUserId }) => {
     if (existing) throw ApiError.conflict("This person is already a member of this trip.");
   }
 
+  const subscription = await normalizeExpiredSubscription(
+    await ensureFreeSubscription(trip.owner),
+  );
+
+  if (subscription.plan !== "Pro") {
+    const [memberCount, pendingInviteCount] = await Promise.all([
+      Member.countDocuments({ tripId }),
+      TripInvitation.countDocuments({
+        tripId,
+        status: "Pending",
+        expiresAt: { $gt: new Date() },
+      }),
+    ]);
+
+    if (memberCount + pendingInviteCount >= 5) {
+      throw ApiError.forbidden("Free plan allows only 5 members or pending invites per trip. Upgrade to Pro.");
+    }
+  }
+
   const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 

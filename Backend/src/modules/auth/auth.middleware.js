@@ -26,7 +26,7 @@ const authenticate = async (req, res, next) => {
 
   req.user = {
     id: user._id.toString(),
-    fullName: user.name,
+    fullName: user.fullName,
     email: user.email,
   };
 
