@@ -14,12 +14,20 @@ import "./index.css";
 import App from "./App.jsx";
 
 const queryClient = createQueryClient();
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+const maybeWithGoogleProvider = (children) =>
+  googleClientId ? (
+    <GoogleOAuthProvider clientId={googleClientId}>{children}</GoogleOAuthProvider>
+  ) : (
+    children
+  );
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <ErrorBoundary>
       <BrowserRouter>
-        <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+        {maybeWithGoogleProvider(
           <QueryClientProvider client={queryClient}>
             <ThemeProvider>
               <AuthProvider>
@@ -31,7 +39,7 @@ createRoot(document.getElementById("root")).render(
               </AuthProvider>
             </ThemeProvider>
           </QueryClientProvider>
-        </GoogleOAuthProvider>
+        )}
       </BrowserRouter>
     </ErrorBoundary>
   </StrictMode>,

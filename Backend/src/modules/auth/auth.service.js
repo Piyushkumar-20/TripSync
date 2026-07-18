@@ -15,7 +15,14 @@ import {
 import { OAuth2Client } from "google-auth-library";
 import { ensureFreeSubscription } from "../subscription/subscription.service.js";
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim();
+const client = new OAuth2Client(googleClientId);
+
+const assertGoogleAuthConfigured = () => {
+  if (!googleClientId) {
+    throw ApiError.badGateway("Google login is not configured.");
+  }
+};
 
 // Hash the refreshtoken before storing in DB
 const hashToken = (token) =>
@@ -33,6 +40,8 @@ const sanitizeUser = (user) => {
 };
 
 const getGooglePayloadFromAccessToken = async (accessToken) => {
+  assertGoogleAuthConfigured();
+
   const tokenInfoUrl = new URL("https://www.googleapis.com/oauth2/v3/tokeninfo");
   tokenInfoUrl.searchParams.set("access_token", accessToken);
 
@@ -41,7 +50,7 @@ const getGooglePayloadFromAccessToken = async (accessToken) => {
 
   if (
     !tokenInfoResponse.ok ||
-    tokenInfo?.aud !== process.env.GOOGLE_CLIENT_ID
+    tokenInfo?.aud !== googleClientId
   ) {
     throw ApiError.unauthorized("Invalid Google token");
   }
@@ -60,11 +69,13 @@ const getGooglePayloadFromAccessToken = async (accessToken) => {
 };
 
 const getGooglePayload = async ({ idToken, accessToken }) => {
+  assertGoogleAuthConfigured();
+
   if (idToken) {
     try {
       const ticket = await client.verifyIdToken({
         idToken,
-        audience: process.env.GOOGLE_CLIENT_ID,
+        audience: googleClientId,
       });
 
       return ticket.getPayload();
