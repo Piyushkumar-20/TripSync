@@ -1,4 +1,4 @@
-import Subscription from "../../modules/subscriptions/subscription.model.js";
+import Subscription from "../../modules/subscription/subscription.model.js"
 import Trip from "../../modules/trips/trip.model.js";
 import Member from "../../modules/members/tripMembers.model.js";
 import ApiError from "../utils/api-error.js";
