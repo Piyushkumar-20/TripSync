@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useEffect, useState } from "react";
 import { io } from "socket.io-client";
-import SocketContext from "./SocketContext";
 import { getAccessToken } from "@/lib/authToken";
+
+const SocketContext = createContext(null);
 
 export function SocketProvider({ children }) {
   const [socket, setSocket] = useState(null);
@@ -33,3 +35,8 @@ export function SocketProvider({ children }) {
     </SocketContext.Provider>
   );
 }
+export function useSocket() {
+  return useContext(SocketContext);
+}
+
+export default SocketContext;
