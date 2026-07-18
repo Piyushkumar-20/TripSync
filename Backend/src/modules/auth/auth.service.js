@@ -13,7 +13,7 @@ import {
   sendVerificationEmail,
 } from "../../common/config/email.js";
 import { OAuth2Client } from "google-auth-library";
-import Subscription from "../subscription/subscription.model.js";
+import { ensureFreeSubscription } from "../subscription/subscription.service.js";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -38,12 +38,7 @@ const register = async ({ fullName, email, password }) => {
     emailVerificationTokenExpires: Date.now() + 15 * 60 * 1000,
   });
 
-  await Subscription.create({
-    userId: user._id,
-    plan: "Free",
-    status: "Active",
-  });
-
+  await ensureFreeSubscription(user._id);
   try {
     await sendVerificationEmail(email, rawToken);
   } catch {
@@ -88,6 +83,7 @@ const login = async ({ email, password }) => {
 
   user.refreshToken = hashToken(refreshToken);
   await user.save({ validateBeforeSave: false });
+  await ensureFreeSubscription(user._id);
 
   const userObj = user.toObject();
   delete userObj.password;
@@ -269,11 +265,7 @@ const googleLogin = async ({ idToken }) => {
       isEmailVerified: true,
     });
 
-    await Subscription.create({
-      userId: user._id,
-      plan: "Free",
-      status: "Active",
-    });
+    await ensureFreeSubscription(user._id);
   } else if (!user.provider || user.provider === "local") {
     user.provider = "google";
     user.googleId = googleId;
@@ -291,6 +283,7 @@ const googleLogin = async ({ idToken }) => {
   user.refreshToken = hashToken(refreshToken);
 
   await user.save({ validateBeforeSave: false });
+  await ensureFreeSubscription(user._id);
 
   const userObj = user.toObject();
   delete userObj.password;

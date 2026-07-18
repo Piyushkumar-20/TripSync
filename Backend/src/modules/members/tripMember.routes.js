@@ -8,6 +8,7 @@ import {
 import * as controller from "./tripMember.controller.js";
 import AddMemberDto from "./dto/add-member.dto.js";
 import UpdateMemberRoleDto from "./dto/update-member-role.dto.js";
+import CreateInvitationDto from "./dto/create-invitation.dto.js";
 import {checkMemberLimit} from "../../common/middleware/subscription.middleware.js"
 
 const router = Router();
@@ -35,6 +36,28 @@ router.post(
   checkMemberLimit,
   validate(AddMemberDto),
   controller.addMember,
+);
+
+router.post(
+  "/:tripId/invitations",
+  authenticate,
+  loadTripRole,
+  requireRole("Owner"),
+  checkMemberLimit,
+  validate(CreateInvitationDto),
+  controller.createInvitation,
+);
+
+router.get(
+  "/invitations/:token",
+  authenticate,
+  controller.getInvitationByToken,
+);
+
+router.post(
+  "/invitations/:token/accept",
+  authenticate,
+  controller.acceptInvitation,
 );
 
 router.patch(

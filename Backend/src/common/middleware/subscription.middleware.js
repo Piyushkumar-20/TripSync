@@ -1,7 +1,10 @@
-import Subscription from "../../modules/subscription/subscription.model.js"
 import Trip from "../../modules/trips/trip.model.js";
 import Member from "../../modules/members/tripMembers.model.js";
 import ApiError from "../utils/api-error.js";
+import {
+  ensureFreeSubscription,
+  normalizeExpiredSubscription,
+} from "../../modules/subscription/subscription.service.js";
 
 /**
  * Allows only Pro users.
@@ -20,13 +23,9 @@ import ApiError from "../utils/api-error.js";
     ownerId = trip.owner.toString();
   }
 
-  const subscription = await Subscription.findOne({
-    userId: ownerId,
-  });
-
-  if (!subscription) {
-    throw ApiError.notFound("Subscription not found");
-  }
+  const subscription = await normalizeExpiredSubscription(
+    await ensureFreeSubscription(ownerId),
+  );
 
   if (
     subscription.plan !== "Pro" ||
@@ -46,13 +45,9 @@ import ApiError from "../utils/api-error.js";
  * Free plan can create only 3 trips.
  */
  const checkTripLimit = async (req, res, next) => {
-  const subscription = await Subscription.findOne({
-    userId: req.user.id,
-  });
-
-  if (!subscription) {
-    throw ApiError.notFound("Subscription not found");
-  }
+  const subscription = await normalizeExpiredSubscription(
+    await ensureFreeSubscription(req.user.id),
+  );
 
   if (subscription.plan === "Pro") {
     return next();
@@ -81,13 +76,9 @@ const checkMemberLimit = async (req, res, next) => {
     throw ApiError.notFound("Trip not found");
   }
 
-  const subscription = await Subscription.findOne({
-    userId: trip.owner,
-  });
-
-  if (!subscription) {
-    throw ApiError.notFound("Subscription not found");
-  }
+  const subscription = await normalizeExpiredSubscription(
+    await ensureFreeSubscription(trip.owner),
+  );
 
   if (subscription.plan === "Pro") {
     return next();

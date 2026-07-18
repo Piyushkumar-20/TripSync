@@ -26,4 +26,11 @@ router.post(
   subscriptionController.verifyPayment,
 );
 
+router.post(
+  "/verify-payment",
+  authenticate,
+  validate(verifyPaymentDto),
+  subscriptionController.verifyPayment,
+);
+
 export default router;

@@ -227,6 +227,34 @@ const sendMemberAddedEmail = async (toEmail, toName, tripTitle, inviterName) => 
   await sendEmail(toEmail, `You have been added to "${tripTitle}" on TripSync`, html);
 };
 
+const sendTripInvitationEmail = async ({
+  toEmail,
+  tripTitle,
+  inviterName,
+  role,
+  invitationUrl,
+}) => {
+  const safeInviter = escapeHtml(inviterName || "A TripSync member");
+  const safeTripTitle = escapeHtml(tripTitle);
+  const safeRole = escapeHtml(role);
+  const html = emailLayout({
+    preheader: `${inviterName || "Someone"} invited you to ${tripTitle} on TripSync.`,
+    title: "You are invited to a trip",
+    intro: `<strong>${safeInviter}</strong> invited you to collaborate on <strong>${safeTripTitle}</strong> as a <strong>${safeRole}</strong>.`,
+    children: `
+      <div style="margin:0 0 22px;padding:16px 18px;background:#f8fafc;border:1px solid #e6edf5;border-radius:10px;">
+        <div style="font-size:12px;text-transform:uppercase;color:#7d8a97;font-weight:700;letter-spacing:.04em;">Trip invitation</div>
+        <div style="margin-top:5px;font-size:18px;color:#1b231c;font-weight:700;">${safeTripTitle}</div>
+        <div style="margin-top:8px;color:#4d5a66;font-size:14px;">Role: ${safeRole}</div>
+      </div>
+    `,
+    buttonUrl: invitationUrl,
+    buttonText: "Accept invitation",
+  });
+
+  await sendEmail(toEmail, `Invitation to join "${tripTitle}" on TripSync`, html);
+};
+
 const sendExpenseAddedEmail = async (toEmail, toName, tripTitle, expenseTitle, amount, paidBy) => {
   const url = `${getClientUrl()}/trips`;
   const safeName = escapeHtml(toName || "there");
@@ -251,4 +279,10 @@ const sendExpenseAddedEmail = async (toEmail, toName, tripTitle, expenseTitle, a
   await sendEmail(toEmail, `New expense added to "${tripTitle}"`, html);
 };
 
-export { sendResetPasswordEmail, sendVerificationEmail, sendMemberAddedEmail, sendExpenseAddedEmail };
+export {
+  sendResetPasswordEmail,
+  sendVerificationEmail,
+  sendMemberAddedEmail,
+  sendTripInvitationEmail,
+  sendExpenseAddedEmail,
+};

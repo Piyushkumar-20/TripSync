@@ -1,6 +1,5 @@
 import * as memberService from "./tripMember.service.js";
 import ApiResponse from "../../common/utils/api-response.js";
-import { io } from "../../app.js";
 
 const addMember = async (req, res) => {
   const member = await memberService.addMember({
@@ -8,8 +7,34 @@ const addMember = async (req, res) => {
     tripId: req.params.tripId,
     currentUserId: req.user.id,
   });
-  io.to(`trip_${req.params.tripId}`).emit("member:added", member);
   ApiResponse.created(res, "Member added successfully!", member);
+};
+
+const createInvitation = async (req, res) => {
+  const invitation = await memberService.createInvitation({
+    ...req.body,
+    tripId: req.params.tripId,
+    currentUserId: req.user.id,
+  });
+
+  ApiResponse.created(res, "Invitation email sent successfully!", invitation);
+};
+
+const getInvitationByToken = async (req, res) => {
+  const invitation = await memberService.getInvitationByToken({
+    token: req.params.token,
+  });
+
+  ApiResponse.ok(res, "Invitation fetched successfully.", invitation);
+};
+
+const acceptInvitation = async (req, res) => {
+  const invitation = await memberService.acceptInvitation({
+    token: req.params.token,
+    userId: req.user.id,
+  });
+
+  ApiResponse.created(res, "Invitation accepted successfully.", invitation);
 };
 
 const getAllMember = async (req, res) => {
@@ -31,7 +56,6 @@ const updateMember = async (req, res) => {
     tripId: req.params.tripId,
     memberId: req.params.memberId,
   });
-  io.to(`trip_${req.params.tripId}`).emit("member:updated", member);
   ApiResponse.ok(res, "Member Updated Successfully!", member);
 };
 
@@ -40,8 +64,16 @@ const deleteMember = async (req, res) => {
     tripId: req.params.tripId,
     memberId: req.params.memberId,
   });
-  io.to(`trip_${req.params.tripId}`).emit("member:deleted", { memberId: req.params.memberId });
   ApiResponse.ok(res, "Member Removed Successfully!");
 };
 
-export { addMember, getAllMember, getMemberById, updateMember, deleteMember };
+export {
+  addMember,
+  createInvitation,
+  getInvitationByToken,
+  acceptInvitation,
+  getAllMember,
+  getMemberById,
+  updateMember,
+  deleteMember,
+};

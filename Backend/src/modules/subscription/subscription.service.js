@@ -1,19 +1,63 @@
 import crypto from "crypto";
-import ApiError from "../.././common/utils/api-error.js";
+import ApiError from "../../common/utils/api-error.js";
+import razorpay from "../../providers/razorpay/razorpay.js";
+import PLANS from "../../common/constants/plan.js";
+import Payment from "./payment_history.model.js";
+import Subscription from "./subscription.model.js";
+
+const ensureFreeSubscription = async (userId) => {
+  return await Subscription.findOneAndUpdate(
+    { userId },
+    {
+      $setOnInsert: {
+        userId,
+        plan: "Free",
+        status: "Active",
+        provider: "Razorpay",
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: null,
+      },
+    },
+    {
+      upsert: true,
+      new: true,
+      setDefaultsOnInsert: true,
+    },
+  );
+};
+
+const normalizeExpiredSubscription = async (subscription) => {
+  if (
+    subscription.plan === "Pro" &&
+    subscription.status === "Active" &&
+    subscription.currentPeriodEnd &&
+    subscription.currentPeriodEnd < new Date()
+  ) {
+    subscription.plan = "Free";
+    subscription.status = "Expired";
+    await subscription.save();
+  }
+
+  return subscription;
+};
 
 const createOrder = async ({ userId, plan }) => {
-  // Validate Plan
   const planDetails = Object.values(PLANS).find((item) => item.name === plan);
 
   if (!planDetails) {
-    throw new ApiError.badGateway("Invalid subscription plan.");
+    throw ApiError.badRequest("Invalid subscription plan.");
   }
 
-  // Find existing subscription
-  const subscription = await Subscription.findOne({ userId });
+  if (planDetails.amount < 100) {
+    throw ApiError.badRequest("Payment amount must be at least 100 paise.");
+  }
 
-  if (!subscription) {
-    throw new ApiError.notFound("Subscription not found.");
+  const subscription = await normalizeExpiredSubscription(
+    await ensureFreeSubscription(userId),
+  );
+
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    throw ApiError.badGateway("Payment provider is not configured.");
   }
 
   if (
@@ -22,24 +66,26 @@ const createOrder = async ({ userId, plan }) => {
     subscription.currentPeriodEnd &&
     subscription.currentPeriodEnd > new Date()
   ) {
-    throw new ApiError.conflict("You have already a Pro Subscription");
+    throw ApiError.conflict("You already have an active Pro subscription.");
   }
 
-  // Create unique receipt
   const receipt = `receipt_${crypto.randomUUID()}`;
 
-  // Create Razorpay Order
-  const order = await razorpay.orders.create({
-    amount: planDetails.amount,
-    currency: planDetails.currency,
-    receipt,
-    notes: {
-      userId: userId.toString(),
-      plan,
-    },
-  });
+  let order;
+  try {
+    order = await razorpay.orders.create({
+      amount: planDetails.amount,
+      currency: planDetails.currency,
+      receipt,
+      notes: {
+        userId: userId.toString(),
+        plan,
+      },
+    });
+  } catch {
+    throw ApiError.badGateway("Unable to create payment order. Please try again.");
+  }
 
-  // Save pending payment
   await Payment.create({
     userId,
     subscriptionId: subscription._id,
@@ -54,6 +100,7 @@ const createOrder = async ({ userId, plan }) => {
 
   return {
     key: process.env.RAZORPAY_KEY_ID,
+    order_id: order.id,
     orderId: order.id,
     amount: order.amount,
     currency: order.currency,
@@ -67,73 +114,76 @@ const verifyPayment = async ({
   razorpay_payment_id,
   razorpay_signature,
 }) => {
-  // Find payment
+  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    throw ApiError.badRequest("Missing payment verification details.");
+  }
+
   const payment = await Payment.findOne({
     orderId: razorpay_order_id,
     userId,
   });
 
   if (!payment) {
-    throw new ApiError.notFound("Payment not found.");
+    throw ApiError.notFound("Payment not found.");
   }
 
   // Already verified
   if (payment.status === "Paid") {
-    throw new ApiError.badRequest("Payment has already been verified.");
+    throw ApiError.badRequest("Payment has already been verified.");
   }
 
-  // Generate Signature
   const generatedSignature = crypto
     .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
     .update(`${razorpay_order_id}|${razorpay_payment_id}`)
     .digest("hex");
 
-  // Verify Signature
   if (generatedSignature !== razorpay_signature) {
     payment.status = "Failed";
     await payment.save();
 
-    throw new ApiError.badRequest("Invalid payment signature.");
+    throw ApiError.badRequest("Invalid payment signature.");
   }
 
-  // Update Payment
   payment.paymentId = razorpay_payment_id;
   payment.status = "Paid";
   payment.paidAt = new Date();
 
   await payment.save();
 
-  // Find Subscription
   const subscription = await Subscription.findById(payment.subscriptionId);
 
   if (!subscription) {
-    throw new ApiError.notFound("Payment not found.");
+    throw ApiError.notFound("Subscription not found.");
   }
 
   const currentDate = new Date();
+  const periodEnd = new Date(currentDate);
+  periodEnd.setMonth(periodEnd.getMonth() + PLANS.PRO.durationInMonths);
 
   subscription.plan = "Pro";
   subscription.status = "Active";
   subscription.provider = "Razorpay";
   subscription.currentPeriodStart = currentDate;
-  subscription.currentPeriodEnd = new Date(
-    currentDate.setMonth(currentDate.getMonth() + 1),
-  );
+  subscription.currentPeriodEnd = periodEnd;
 
   await subscription.save();
 
   return {
-    message: "Subscription activated successfully.",
+    subscription,
   };
 };
 
 const getMySubscription = async ({ userId }) => {
-  const subscription = await Subscription.findOne({ userId }).lean();
+  const subscription = await normalizeExpiredSubscription(
+    await ensureFreeSubscription(userId),
+  );
 
-  if (!subscription) {
-    throw new ApiError.notFound("Payment not found.");
-  }
-
-  return subscription;
+  return subscription.toObject();
 };
-export { createOrder, verifyPayment, getMySubscription };
+export {
+  createOrder,
+  verifyPayment,
+  getMySubscription,
+  ensureFreeSubscription,
+  normalizeExpiredSubscription,
+};
