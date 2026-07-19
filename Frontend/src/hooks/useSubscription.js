@@ -6,7 +6,7 @@ import { subscriptionService } from "@/services/subscriptionService";
 const RAZORPAY_SCRIPT_ID = "razorpay-checkout-js";
 
 function getRazorpayKey(order) {
-  return order?.key || import.meta.env.VITE_RAZORPAY_KEY_ID;
+  return order?.key;
 }
 
 function assertValidOrder(order) {
