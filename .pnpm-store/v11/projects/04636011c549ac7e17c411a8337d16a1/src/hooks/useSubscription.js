@@ -58,14 +58,14 @@ export const useUpgradeSubscription = ({ user } = {}) => {
 
   return useMutation({
     mutationFn: async () => {
+      const orderRes = await subscriptionService.createOrder({ plan: "Pro" });
+      const order = orderRes.data.data;
+      const { key, orderId } = assertValidOrder(order);
+
       const loaded = await loadRazorpayScript();
       if (!loaded) {
         throw new Error("Payment checkout could not be loaded.");
       }
-
-      const orderRes = await subscriptionService.createOrder({ plan: "Pro" });
-      const order = orderRes.data.data;
-      const { key, orderId } = assertValidOrder(order);
 
       return await new Promise((resolve, reject) => {
         const checkout = new window.Razorpay({
