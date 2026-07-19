@@ -12,6 +12,7 @@ const REQUIRED_ENV_VARS = [
   "CLIENT_URL",
   "RAZORPAY_KEY_ID",
   "RAZORPAY_KEY_SECRET",
+  "RAZORPAY_WEBHOOK_SECRET",
 ];
 
 const getEnv = (name) => process.env[name]?.trim();
@@ -61,6 +62,9 @@ const env = {
   },
   get razorpayKeySecret() {
     return getEnv("RAZORPAY_KEY_SECRET");
+  },
+  get razorpayWebhookSecret() {
+    return getEnv("RAZORPAY_WEBHOOK_SECRET");
   },
   get allowedOrigins() {
     return getAllowedOrigins();

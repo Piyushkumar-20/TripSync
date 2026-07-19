@@ -37,8 +37,18 @@ const getMySubscription = async (req, res) => {
   );
 };
 
+const handleWebhook = async (req, res) => {
+  await subscriptionService.handleWebhook({
+    signature: req.headers["x-razorpay-signature"],
+    rawBody: req.body,
+  });
+
+  ApiResponse.ok(res, "Webhook processed successfully.");
+};
+
 export {
   createOrder,
   verifyPayment,
   getMySubscription,
+  handleWebhook,
 };

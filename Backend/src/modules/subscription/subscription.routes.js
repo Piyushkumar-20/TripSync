@@ -5,6 +5,7 @@ import authenticate from "../auth/auth.middleware.js"
 import validate from "../../common/validators/validator.js";
 import { verifyPaymentDto, createOrderDto } from "./dto/subscription.dto.js"
 const router = express.Router();
+const webhookRouter = express.Router();
 
 router.get(
   "/me",
@@ -33,4 +34,10 @@ router.post(
   subscriptionController.verifyPayment,
 );
 
+webhookRouter.post(
+  "/",
+  subscriptionController.handleWebhook,
+);
+
 export default router;
+export { webhookRouter };

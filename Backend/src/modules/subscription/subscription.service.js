@@ -5,6 +5,7 @@ import {
   getRazorpayCredentials,
   getRazorpayPayment,
 } from "../../providers/razorpay/razorpay.js";
+import { env } from "../../common/config/env.js";
 import PLANS from "../../common/constants/plan.js";
 import { logger } from "../../common/utils/logger.js";
 import Payment from "./payment_history.model.js";
@@ -62,6 +63,47 @@ const fetchRazorpayPaymentWithRetry = async (paymentId) => {
       await delay(500 * attempt);
     }
   }
+};
+
+const verifySignature = ({ payload, signature, secret }) => {
+  if (!signature) {
+    throw ApiError.badRequest("Missing Razorpay signature.");
+  }
+
+  const generatedSignature = crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest("hex");
+
+  const generatedSignatureBuffer = Buffer.from(generatedSignature, "hex");
+  const receivedSignatureBuffer = Buffer.from(signature, "hex");
+
+  return (
+    generatedSignatureBuffer.length === receivedSignatureBuffer.length &&
+    crypto.timingSafeEqual(generatedSignatureBuffer, receivedSignatureBuffer)
+  );
+};
+
+const activateSubscription = async (subscriptionId) => {
+  const subscription = await Subscription.findById(subscriptionId);
+
+  if (!subscription) {
+    throw ApiError.notFound("Subscription not found.");
+  }
+
+  const currentDate = new Date();
+  const periodEnd = new Date(currentDate);
+  periodEnd.setMonth(periodEnd.getMonth() + PLANS.PRO.durationInMonths);
+
+  subscription.plan = "Pro";
+  subscription.status = "Active";
+  subscription.provider = "Razorpay";
+  subscription.currentPeriodStart = currentDate;
+  subscription.currentPeriodEnd = periodEnd;
+
+  await subscription.save();
+
+  return subscription;
 };
 
 const createOrder = async ({ userId, plan }) => {
@@ -200,9 +242,10 @@ const verifyPayment = async ({
     throw ApiError.notFound("Payment not found.");
   }
 
-  // Already verified
   if (payment.status === "Paid") {
-    throw ApiError.badRequest("Payment has already been verified.");
+    return {
+      subscription: await activateSubscription(payment.subscriptionId),
+    };
   }
 
   const credentials = getRazorpayCredentials();
@@ -210,16 +253,11 @@ const verifyPayment = async ({
     throw ApiError.internal("Payment provider is not configured.");
   }
 
-  const generatedSignature = crypto
-    .createHmac("sha256", credentials.keySecret)
-    .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-    .digest("hex");
-
-  const generatedSignatureBuffer = Buffer.from(generatedSignature, "hex");
-  const receivedSignatureBuffer = Buffer.from(razorpay_signature, "hex");
-  const isValidSignature =
-    generatedSignatureBuffer.length === receivedSignatureBuffer.length &&
-    crypto.timingSafeEqual(generatedSignatureBuffer, receivedSignatureBuffer);
+  const isValidSignature = verifySignature({
+    payload: `${razorpay_order_id}|${razorpay_payment_id}`,
+    signature: razorpay_signature,
+    secret: credentials.keySecret,
+  });
 
   if (!isValidSignature) {
     payment.status = "Failed";
@@ -280,27 +318,132 @@ const verifyPayment = async ({
 
   await payment.save();
 
-  const subscription = await Subscription.findById(payment.subscriptionId);
-
-  if (!subscription) {
-    throw ApiError.notFound("Subscription not found.");
-  }
-
-  const currentDate = new Date();
-  const periodEnd = new Date(currentDate);
-  periodEnd.setMonth(periodEnd.getMonth() + PLANS.PRO.durationInMonths);
-
-  subscription.plan = "Pro";
-  subscription.status = "Active";
-  subscription.provider = "Razorpay";
-  subscription.currentPeriodStart = currentDate;
-  subscription.currentPeriodEnd = periodEnd;
-
-  await subscription.save();
+  const subscription = await activateSubscription(payment.subscriptionId);
 
   return {
     subscription,
   };
+};
+
+const parseWebhookBody = (rawBody) => {
+  const body = Buffer.isBuffer(rawBody) ? rawBody.toString("utf8") : rawBody;
+
+  if (!body) {
+    throw ApiError.badRequest("Webhook body is empty.");
+  }
+
+  try {
+    return {
+      payload: body,
+      event: typeof body === "string" ? JSON.parse(body) : body,
+    };
+  } catch {
+    throw ApiError.badRequest("Webhook body is invalid JSON.");
+  }
+};
+
+const markWebhookPaymentFailed = async ({ orderId, paymentId }) => {
+  const payment = await Payment.findOne({ orderId });
+
+  if (!payment) {
+    logger.error("Webhook payment record not found.", {
+      orderId,
+      paymentId,
+    });
+    return null;
+  }
+
+  if (payment.status !== "Paid") {
+    payment.status = "Failed";
+    await payment.save();
+  }
+
+  return payment;
+};
+
+const markWebhookPaymentPaid = async ({ orderId, paymentId, amount, currency }) => {
+  const payment = await Payment.findOne({ orderId });
+
+  if (!payment) {
+    logger.error("Webhook payment record not found.", {
+      orderId,
+      paymentId,
+      amount,
+      currency,
+    });
+    return null;
+  }
+
+  if (payment.amount !== amount || payment.currency !== currency) {
+    payment.status = "Failed";
+    await payment.save();
+
+    throw ApiError.badRequest("Webhook payment details do not match order.");
+  }
+
+  if (payment.status !== "Paid") {
+    payment.paymentId = paymentId;
+    payment.status = "Paid";
+    payment.paidAt = new Date();
+    await payment.save();
+  }
+
+  await activateSubscription(payment.subscriptionId);
+
+  return payment;
+};
+
+const handleWebhook = async ({ signature, rawBody }) => {
+  if (!env.razorpayWebhookSecret) {
+    throw ApiError.internal("Razorpay webhook secret is not configured.");
+  }
+
+  const { payload, event } = parseWebhookBody(rawBody);
+  const isValidSignature = verifySignature({
+    payload,
+    signature,
+    secret: env.razorpayWebhookSecret,
+  });
+
+  if (!isValidSignature) {
+    throw ApiError.badRequest("Invalid Razorpay webhook signature.");
+  }
+
+  const entity = event?.payload?.payment?.entity;
+  const orderId = entity?.order_id;
+  const paymentId = entity?.id;
+
+  logger.info("Razorpay webhook received.", {
+    event: event?.event,
+    orderId,
+    paymentId,
+  });
+
+  if (!orderId || !paymentId) {
+    logger.info("Ignoring Razorpay webhook without order/payment id.", {
+      event: event?.event,
+    });
+    return { ignored: true };
+  }
+
+  if (["payment.captured", "payment.authorized"].includes(event.event)) {
+    await markWebhookPaymentPaid({
+      orderId,
+      paymentId,
+      amount: entity.amount,
+      currency: entity.currency,
+    });
+  } else if (event.event === "payment.failed") {
+    await markWebhookPaymentFailed({ orderId, paymentId });
+  } else {
+    logger.info("Ignoring unsupported Razorpay webhook event.", {
+      event: event.event,
+      orderId,
+      paymentId,
+    });
+  }
+
+  return { processed: true };
 };
 
 const getMySubscription = async ({ userId }) => {
@@ -314,6 +457,7 @@ export {
   createOrder,
   verifyPayment,
   getMySubscription,
+  handleWebhook,
   ensureFreeSubscription,
   normalizeExpiredSubscription,
 };

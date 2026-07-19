@@ -19,7 +19,7 @@ import documentRoute from "./modules/documents/document.routes.js";
 import activityRoute from "./modules/activity/activity.routes.js";
 import commentRoute from "./modules/comments/comment.routes.js";
 import checklistRoute from "./modules/checklists/checklistItem.routes.js";
-import subscriptionRoute from "./modules/subscription/subscription.routes.js"
+import subscriptionRoute, { webhookRouter } from "./modules/subscription/subscription.routes.js"
 
 
 const app = express();
@@ -46,6 +46,11 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(compression());
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
+app.use(
+  "/api/v1/subscriptions/webhook",
+  express.raw({ type: "application/json" }),
+  webhookRouter,
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
