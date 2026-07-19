@@ -121,13 +121,21 @@ const acceptShareLink = async ({ token, userId }) => {
     throw ApiError.badRequest("This share link has expired.");
   }
 
+  if (trip.owner.toString() === userId.toString()) {
+    return {
+      tripId: trip._id,
+    };
+  }
+
   const existingMember = await Member.findOne({
     tripId: trip._id,
     userId,
   });
 
   if (existingMember) {
-    throw ApiError.conflict("You are already a member of this trip.");
+    return {
+      tripId: trip._id,
+    };
   }
 
   await Member.create({

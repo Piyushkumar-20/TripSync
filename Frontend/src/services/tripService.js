@@ -6,4 +6,6 @@ export const tripService = {
   update:  (tripId, data) => api.patch(`/trips/${tripId}`, data),
   delete:  (tripId)       => api.delete(`/trips/${tripId}`),
   generateShareLink: (tripId) => api.post(`/trips/${tripId}/share-link`),
+  getShareLink: (token) => api.get(`/trips/invite/${token}`),
+  acceptShareLink: (token) => api.post(`/trips/invite/${token}/accept`),
 };

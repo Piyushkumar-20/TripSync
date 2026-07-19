@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom"
+import { Navigate, Route, Routes, useLocation } from "react-router-dom"
 import { useAuth } from "@/context/AuthContext"
 import LandingPage from "@/pages/LandingPage"
 import DocsPage from "@/pages/DocsPage"
@@ -14,6 +14,7 @@ import TripDetailsPage from "@/pages/TripDetailsPage"
 import DestinationActivitiesPage from "@/pages/DestinationActivitiesPage"
 import MembersPage from "@/pages/MembersPage"
 import InvitationPage from "@/pages/InvitationPage"
+import ShareInvitePage from "@/pages/ShareInvitePage"
 import SubscriptionPage from "@/pages/SubscriptionPage"
 import SettingsPage from "@/pages/SettingsPage"
 import ChecklistsPage from "@/pages/ChecklistsPage"
@@ -21,15 +22,17 @@ import CommentsPage from "@/pages/CommentsPage"
 import MainLayout from "@/layouts/MainLayout"
 
 function ProtectedRoute({ children }) {
+  const location = useLocation()
   const { user, loading } = useAuth()
   if (loading) return null
-  return user ? children : <Navigate to="/login" replace />
+  return user ? children : <Navigate to="/login" replace state={{ from: location }} />
 }
 
 function GuestRoute({ children }) {
+  const location = useLocation()
   const { user, loading } = useAuth()
   if (loading) return null
-  return user ? <Navigate to="/dashboard" replace /> : children
+  return user ? <Navigate to={location.state?.from?.pathname ?? "/dashboard"} replace /> : children
 }
 
 export default function App() {
@@ -59,6 +62,7 @@ export default function App() {
         <Route path="/trips/:tripId/checklists" element={<ChecklistsPage />} />
         <Route path="/trips/:tripId/destinations/:destinationId/activities" element={<DestinationActivitiesPage />} />
         <Route path="/members" element={<MembersPage />} />
+        <Route path="/invite/:token" element={<ShareInvitePage />} />
         <Route path="/invitations/:token" element={<InvitationPage />} />
         <Route path="/subscription" element={<SubscriptionPage />} />
         <Route path="/settings" element={<SettingsPage />} />

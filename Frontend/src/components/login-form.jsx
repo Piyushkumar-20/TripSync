@@ -52,7 +52,7 @@ function GoogleLoginButton({ disabled, onStart, onSuccess, onError }) {
   );
 }
 
-export function LoginForm({ className, initialEmail = "", ...props }) {
+export function LoginForm({ className, initialEmail = "", redirectTo = "/dashboard", ...props }) {
   const { login, googleLogin, resendVerificationEmail } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: initialEmail, password: "" });
@@ -73,7 +73,7 @@ export function LoginForm({ className, initialEmail = "", ...props }) {
     setLoading(true);
     try {
       await login({ email: form.email, password: form.password });
-      navigate("/dashboard");
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       const message = getAuthErrorMessage(err);
       setError(message);
@@ -110,7 +110,7 @@ export function LoginForm({ className, initialEmail = "", ...props }) {
       }
 
       await googleLogin({ accessToken });
-      navigate("/dashboard");
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       setError(getAuthErrorMessage(err, "Google login failed. Please try again."));
     } finally {

@@ -12,6 +12,17 @@ export const useTrips = () =>
     },
   });
 
+export const useShareLink = (token) =>
+  useQuery({
+    queryKey: ["share-link", token],
+    queryFn: async () => {
+      const res = await tripService.getShareLink(token);
+      return res.data.data;
+    },
+    enabled: !!token,
+    retry: false,
+  });
+
 export const useCreateTrip = (onSuccess) => {
   const qc = useQueryClient();
   return useMutation({
@@ -64,3 +75,19 @@ export const useGenerateShareLink = (onSuccess) =>
     onError: (err) =>
       toast.error(getUserErrorMessage(err, "Failed to create share link.")),
   });
+
+export const useAcceptShareLink = (token, onSuccess) => {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => tripService.acceptShareLink(token),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["trips"] });
+      qc.invalidateQueries({ queryKey: ["members"] });
+      toast.success("Trip joined.");
+      onSuccess?.(res.data.data);
+    },
+    onError: (err) =>
+      toast.error(getUserErrorMessage(err, "Failed to join trip.")),
+  });
+};
