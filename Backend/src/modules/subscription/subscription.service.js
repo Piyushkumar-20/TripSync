@@ -46,6 +46,24 @@ const normalizeExpiredSubscription = async (subscription) => {
   return subscription;
 };
 
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const fetchRazorpayPaymentWithRetry = async (paymentId) => {
+  const maxAttempts = 3;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await getRazorpayPayment(paymentId);
+    } catch (error) {
+      if (attempt === maxAttempts) {
+        throw error;
+      }
+
+      await delay(500 * attempt);
+    }
+  }
+};
+
 const createOrder = async ({ userId, plan }) => {
   const planDetails = Object.values(PLANS).find((item) => item.name === plan);
 
@@ -210,9 +228,9 @@ const verifyPayment = async ({
     throw ApiError.badRequest("Invalid payment signature.");
   }
 
-  let providerPayment;
+  let providerPayment = null;
   try {
-    providerPayment = await getRazorpayPayment(razorpay_payment_id);
+    providerPayment = await fetchRazorpayPaymentWithRetry(razorpay_payment_id);
   } catch (error) {
     logger.error("Razorpay payment lookup failed.", {
       endpoint: "POST /api/v1/subscriptions/verify",
@@ -227,18 +245,33 @@ const verifyPayment = async ({
       message: error.message,
       stack: error.stack,
     });
-    throw ApiError.badGateway("Unable to verify payment. Please try again.");
+  }
+
+  if (providerPayment && providerPayment.order_id !== payment.orderId) {
+    payment.status = "Failed";
+    await payment.save();
+    throw ApiError.badRequest("Payment order mismatch.");
+  }
+
+  if (providerPayment && providerPayment.amount !== payment.amount) {
+    payment.status = "Failed";
+    await payment.save();
+    throw ApiError.badRequest("Payment amount mismatch.");
+  }
+
+  if (providerPayment && providerPayment.currency !== payment.currency) {
+    payment.status = "Failed";
+    await payment.save();
+    throw ApiError.badRequest("Payment currency mismatch.");
   }
 
   if (
-    providerPayment.order_id !== payment.orderId ||
-    providerPayment.amount !== payment.amount ||
-    providerPayment.currency !== payment.currency ||
+    providerPayment &&
     !["captured", "authorized"].includes(providerPayment.status)
   ) {
     payment.status = "Failed";
     await payment.save();
-    throw ApiError.badRequest("Payment verification failed.");
+    throw ApiError.badRequest("Payment is not authorized.");
   }
 
   payment.paymentId = razorpay_payment_id;
