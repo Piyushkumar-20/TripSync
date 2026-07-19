@@ -1,11 +1,7 @@
-import dotenv from "dotenv";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { validateEnvironment } from "./common/config/env.js";
+import { logger } from "./common/utils/logger.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-dotenv.config({ path: path.resolve(__dirname, "../.env") });
+validateEnvironment();
 
 const [{ connectionDB }, { server }, { initSocket }] = await Promise.all([
   import("./common/config/db.js"),
@@ -19,9 +15,15 @@ const startServer = async () => {
 
   initSocket();
 
-  server.listen(PORT);
+  server.listen(PORT, () => {
+    logger.info("Server started.", { port: PORT, nodeEnv: process.env.NODE_ENV });
+  });
 };
 
-startServer().catch(() => {
+startServer().catch((error) => {
+  logger.error("Server failed to start.", {
+    message: error.message,
+    stack: error.stack,
+  });
   process.exit(1);
 });

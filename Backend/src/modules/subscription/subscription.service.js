@@ -6,6 +6,7 @@ import {
   getRazorpayPayment,
 } from "../../providers/razorpay/razorpay.js";
 import PLANS from "../../common/constants/plan.js";
+import { logger } from "../../common/utils/logger.js";
 import Payment from "./payment_history.model.js";
 import Subscription from "./subscription.model.js";
 
@@ -52,8 +53,18 @@ const createOrder = async ({ userId, plan }) => {
     throw ApiError.badRequest("Invalid subscription plan.");
   }
 
-  if (planDetails.amount < 100) {
-    throw ApiError.badRequest("Payment amount must be at least 100 paise.");
+  if (!Number.isInteger(planDetails.amount) || planDetails.amount < 100) {
+    throw ApiError.badRequest("Payment amount must be at least 100 paise.", {
+      plan,
+      amount: planDetails.amount,
+    });
+  }
+
+  if (!/^[A-Z]{3}$/.test(planDetails.currency)) {
+    throw ApiError.badRequest("Payment currency is invalid.", {
+      plan,
+      currency: planDetails.currency,
+    });
   }
 
   const subscription = await normalizeExpiredSubscription(
@@ -61,7 +72,7 @@ const createOrder = async ({ userId, plan }) => {
   );
 
   const credentials = getRazorpayCredentials();
-  if (!credentials) {
+  if (!credentials.keyId || !credentials.keySecret) {
     throw ApiError.internal("Payment provider is not configured.");
   }
 
@@ -75,18 +86,26 @@ const createOrder = async ({ userId, plan }) => {
   }
 
   const receipt = `rcpt_${crypto.randomBytes(12).toString("hex")}`;
+  const razorpayRequest = {
+    amount: planDetails.amount,
+    currency: planDetails.currency,
+    receipt,
+    notes: {
+      userId: userId.toString(),
+      plan,
+    },
+  };
+
+  logger.info("Creating Razorpay order.", {
+    endpoint: "POST /api/v1/subscriptions/create-order",
+    userId,
+    requestBody: { plan },
+    razorpayRequest,
+  });
 
   let order;
   try {
-    order = await createRazorpayOrder({
-      amount: planDetails.amount,
-      currency: planDetails.currency,
-      receipt,
-      notes: {
-        userId: userId.toString(),
-        plan,
-      },
-    });
+    order = await createRazorpayOrder(razorpayRequest);
   } catch (error) {
     if (error.code === "RAZORPAY_CONFIG_MISSING") {
       throw ApiError.internal("Payment provider is not configured.");
@@ -96,14 +115,31 @@ const createOrder = async ({ userId, plan }) => {
       throw ApiError.unauthorized("Payment provider authentication failed.");
     }
 
-    console.error("Razorpay order creation failed:", {
+    logger.error("Razorpay order creation failed.", {
+      endpoint: "POST /api/v1/subscriptions/create-order",
+      userId,
+      requestBody: { plan },
+      razorpayRequest,
       code: error.code,
       statusCode: error.statusCode,
       message: error.message,
+      stack: error.stack,
     });
 
     throw ApiError.internal("Unable to create payment order. Please try again.");
   }
+
+  logger.info("Razorpay order created.", {
+    endpoint: "POST /api/v1/subscriptions/create-order",
+    userId,
+    razorpayResponse: {
+      id: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      receipt: order.receipt,
+      status: order.status,
+    },
+  });
 
   await Payment.create({
     userId,
@@ -152,7 +188,7 @@ const verifyPayment = async ({
   }
 
   const credentials = getRazorpayCredentials();
-  if (!credentials) {
+  if (!credentials.keyId || !credentials.keySecret) {
     throw ApiError.internal("Payment provider is not configured.");
   }
 
@@ -178,10 +214,18 @@ const verifyPayment = async ({
   try {
     providerPayment = await getRazorpayPayment(razorpay_payment_id);
   } catch (error) {
-    console.error("Razorpay payment lookup failed:", {
+    logger.error("Razorpay payment lookup failed.", {
+      endpoint: "POST /api/v1/subscriptions/verify",
+      userId,
+      requestBody: {
+        razorpay_order_id,
+        razorpay_payment_id,
+        razorpay_signature,
+      },
       code: error.code,
       statusCode: error.statusCode,
       message: error.message,
+      stack: error.stack,
     });
     throw ApiError.badGateway("Unable to verify payment. Please try again.");
   }

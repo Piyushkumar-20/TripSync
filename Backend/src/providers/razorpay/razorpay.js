@@ -1,85 +1,62 @@
-const getRazorpayCredentials = () => {
-  const keyId = process.env.RAZORPAY_KEY_ID?.trim();
-  const keySecret = process.env.RAZORPAY_KEY_SECRET?.trim();
+import Razorpay from "razorpay";
+import { env } from "../../common/config/env.js";
 
-  if (!keyId || !keySecret) return null;
+let razorpayClient;
+const getProviderStatusCode = (error) =>
+  Number(error.statusCode || error.status) || 500;
 
-  return { keyId, keySecret };
+const getRazorpayCredentials = () => ({
+  keyId: env.razorpayKeyId,
+  keySecret: env.razorpayKeySecret,
+});
+
+const getRazorpayClient = () => {
+  if (!razorpayClient) {
+    const credentials = getRazorpayCredentials();
+
+    if (!credentials.keyId || !credentials.keySecret) {
+      const error = new Error("Razorpay credentials are missing.");
+      error.code = "RAZORPAY_CONFIG_MISSING";
+      throw error;
+    }
+
+    razorpayClient = new Razorpay({
+      key_id: credentials.keyId,
+      key_secret: credentials.keySecret,
+    });
+  }
+
+  return razorpayClient;
 };
 
 const createRazorpayOrder = async ({ amount, currency, receipt, notes }) => {
-  const credentials = getRazorpayCredentials();
-  if (!credentials) {
-    const error = new Error("Razorpay credentials are missing.");
-    error.code = "RAZORPAY_CONFIG_MISSING";
-    throw error;
-  }
-
-  const auth = Buffer.from(
-    `${credentials.keyId}:${credentials.keySecret}`,
-  ).toString("base64");
-
-  const response = await fetch("https://api.razorpay.com/v1/orders", {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${auth}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+  try {
+    return await getRazorpayClient().orders.create({
       amount,
       currency,
       receipt,
       notes,
-    }),
-  });
-
-  const data = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    const error = new Error(data?.error?.description || "Razorpay order creation failed.");
-    error.code = "RAZORPAY_ORDER_FAILED";
-    error.statusCode = response.status;
+    });
+  } catch (error) {
+    error.code = error.code || "RAZORPAY_ORDER_FAILED";
+    error.statusCode = getProviderStatusCode(error);
     throw error;
   }
-
-  return data;
 };
 
 const getRazorpayPayment = async (paymentId) => {
-  const credentials = getRazorpayCredentials();
-  if (!credentials) {
-    const error = new Error("Razorpay credentials are missing.");
-    error.code = "RAZORPAY_CONFIG_MISSING";
+  try {
+    return await getRazorpayClient().payments.fetch(paymentId);
+  } catch (error) {
+    error.code = error.code || "RAZORPAY_PAYMENT_LOOKUP_FAILED";
+    error.statusCode = getProviderStatusCode(error);
     throw error;
   }
-
-  const auth = Buffer.from(
-    `${credentials.keyId}:${credentials.keySecret}`,
-  ).toString("base64");
-
-  const response = await fetch(
-    `https://api.razorpay.com/v1/payments/${paymentId}`,
-    {
-      headers: {
-        Authorization: `Basic ${auth}`,
-      },
-    },
-  );
-
-  const data = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    const error = new Error(data?.error?.description || "Razorpay payment lookup failed.");
-    error.code = "RAZORPAY_PAYMENT_LOOKUP_FAILED";
-    error.statusCode = response.status;
-    throw error;
-  }
-
-  return data;
 };
 
 export {
   createRazorpayOrder,
   getRazorpayCredentials,
+  getRazorpayClient,
   getRazorpayPayment,
 };

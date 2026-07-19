@@ -6,6 +6,9 @@ import http from "node:http";
 import { Server } from "socket.io";
 import { apiReference } from "@scalar/express-api-reference";
 import openApiSpec from "./common/docs/openapi.js";
+import ApiError from "./common/utils/api-error.js";
+import { getAllowedOrigins } from "./common/config/env.js";
+import { logger, requestContext } from "./common/utils/logger.js";
 
 import authRoute from "./modules/auth/auth.routes.js";
 import tripRoute from "./modules/trips/trip.routes.js";
@@ -22,26 +25,27 @@ import subscriptionRoute from "./modules/subscription/subscription.routes.js"
 const app = express();
 
 
-const allowedOrigins = (process.env.CLIENT_URL || "")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const allowedOrigins = getAllowedOrigins();
 
 const corsOptions = {
   origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    const normalizedOrigin = origin?.replace(/\/$/, "");
+    if (!normalizedOrigin || allowedOrigins.includes(normalizedOrigin)) {
       callback(null, true);
       return;
     }
 
-    callback(new Error("Not allowed by CORS"));
+    callback(ApiError.forbidden("Origin is not allowed by CORS."));
   },
   credentials: true,
+  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 204,
 };
 
+app.use(cors(corsOptions));
 app.use(compression());
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
-app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -78,7 +82,25 @@ app.use("/api/v1/subscriptions", subscriptionRoute);
 app.use((err, req, res, next) => {
   const status = err.status || 500;
   const message = err.message || "Internal Server Error";
-  res.status(status).json({ success: false, message });
+  const error = err.code || err.name || "Error";
+  const details = err.details || null;
+
+  logger.error("Request failed.", {
+    ...requestContext(req),
+    statusCode: status,
+    error,
+    message,
+    details,
+    stack: err.stack,
+  });
+
+  res.status(status).json({
+    success: false,
+    message,
+    error,
+    details,
+    statusCode: status,
+  });
 });
 
 export { app, server, io };
