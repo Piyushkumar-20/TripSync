@@ -30,9 +30,7 @@ const paymentSchema = new mongoose.Schema(
 
     paymentId: {
       type: String,
-      default: null,
-      unique: true,
-      sparse: true,
+      default: undefined,
     },
 
     amount: {
@@ -70,4 +68,29 @@ const paymentSchema = new mongoose.Schema(
   },
 );
 
-export default mongoose.model("Payment", paymentSchema);
+paymentSchema.index(
+  { paymentId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { paymentId: { $type: "string" } },
+  },
+);
+
+const Payment = mongoose.model("Payment", paymentSchema);
+
+const ensurePaymentIndexes = async () => {
+  const indexes = await Payment.collection.indexes();
+  const paymentIdIndex = indexes.find((index) => index.name === "paymentId_1");
+  const hasCorrectPartialIndex =
+    paymentIdIndex?.unique === true &&
+    paymentIdIndex?.partialFilterExpression?.paymentId?.$type === "string";
+
+  if (paymentIdIndex && !hasCorrectPartialIndex) {
+    await Payment.collection.dropIndex("paymentId_1");
+  }
+
+  await Payment.syncIndexes();
+};
+
+export { ensurePaymentIndexes };
+export default Payment;

@@ -12,6 +12,11 @@ const [{ connectionDB }, { server }, { initSocket }] = await Promise.all([
 const PORT = process.env.PORT || 8080;
 const startServer = async () => {
   await connectionDB();
+  const { ensurePaymentIndexes } = await import(
+    "./modules/subscription/payment_history.model.js"
+  );
+
+  await ensurePaymentIndexes();
 
   initSocket();
 
